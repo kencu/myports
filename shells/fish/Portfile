@@ -7,6 +7,7 @@ PortGroup               cxx11 1.1
 PortGroup               legacysupport 1.0
 
 github.setup            fish-shell fish-shell 3.0.2
+revision                1
 name                    fish
 license                 GPL-2
 categories              shells
@@ -28,6 +29,8 @@ depends_lib             port:libiconv \
                         port:ncurses \
                         port:gettext
 
+# remove unguarded-availability flag, accepted only on new clangs
+# set pipefail only if the bash version is sufficiently new to accept it
 patchfiles              patch-remove-unguarded-availability.diff \
                         patch-share_config_fish.diff \
                         patch-tests-bash-check.diff
@@ -41,8 +44,13 @@ configure.args-append   -DBUILD_DOCS=OFF
 platform darwin 8 {
     #/opt/local/var/macports/build/_opt_myports_shells_fish/fish/work/fish-3.0.2/src/env.cpp:436:31: error: invalid conversion from 'char*' to 'int'
     configure.cxxflags-append -D__DARWIN_UNIX03
+
+    depends_test-append port:bash
+    test.env-append     SHELL=${prefix}/bin/bash
 }
 
+depends_test-append     port:expect
+test.env-append         TERM=nsterm  #other possible options are ansi, dtterm, rxvt, vt52, vt100, vt102, xterm
 test.run                yes
 test.target             test
 
