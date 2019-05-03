@@ -35,8 +35,8 @@ depends_build-append \
                     port:gperf \
                     port:gtk-doc \
                     port:pkgconfig \
-                    port:python27 \
-                    port:py27-simplejson
+                    port:python37 \
+                    port:py37-simplejson
 
 depends_lib-append  port:atk \
                     port:at-spi2-atk \
@@ -242,6 +242,8 @@ if {${os.platform} eq "darwin" && ${os.major} <= 13} {
     # https://trac.macports.org/ticket/52016
     depends_build-append    port:ruby24
     configure.args-append   -DRUBY_EXECUTABLE=${prefix}/bin/ruby2.4
+    
+    configure.args-append   -DPYTHON_EXECUTABLE=${prefix}/bin/python3.7
     
     if { ${os.major} < 11 } {
         # disabling JIT fixes the following build error on 10.6.8
