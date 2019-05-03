@@ -1,0 +1,78 @@
+# -*- coding: utf-8; mode: tcl; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- vim:fenc=utf-8:ft=tcl:et:sw=4:ts=4:sts=4
+
+PortSystem       1.0
+PortGroup        github 1.0
+PortGroup        legacysupport 1.0
+
+name             libuv
+categories       devel
+platforms        darwin
+maintainers      {michaelld @michaelld} \
+                 openmaintainer
+license          {MIT BSD}
+
+description      Cross-platform asychronous I/O
+
+long_description libuv is a multi-platform support library with a \
+                 focus on cross-platform asynchronous I/O.
+
+if {${subport} eq ${name}} {
+
+	github.setup libuv libuv 1.28.0 v
+	checksums rmd160 021dfc555baec1572795c06b502228379146e580 \
+			  sha256 4a115f752fb8dd2f24f8ad5a3c1a975260b550c0fc3ef525c449eb382f182358 \
+			  size   1219212
+	revision  0
+
+	conflicts libuv-devel
+
+}
+
+subport libuv-devel {
+
+	github.setup libuv libuv a74e54bc8fab57c02eabda907e7b5d10451d0a99
+	version      20190423-[string range ${github.version} 0 7]
+	checksums    rmd160 bde3c79f77695e3f85762cfd420e83500eba4cac \
+				 sha256 82de1f37c694eb9d4216e3d9a417cfe84e6f0f0bf4a0075f3cc4a47649e9883b \
+				 size   1221390
+	revision     0
+
+	long_description ${long_description} \
+		This port is kept up with the libuv GIT 'master' branch, is typically updated weekly to monthly.
+	conflicts libuv
+
+	github.livecheck.branch v1.x
+
+}
+
+subport libuv-ken {
+
+	github.setup kencu libuv 1b6cd3bb22af8fe6c0d0887efb15ac8e7061dd9a
+	version      20190503-[string range ${github.version} 0 7]
+checksums           rmd160  38dce360f822b35ecf622786ff2ab0f21f03cc76 \
+                    sha256  a339a96e094b784b724423a093ed39706d5e3c095fd834a07e527c5758a34133 \
+                    size    1221670
+	revision     0
+
+	long_description ${long_description} \
+		This port is kept up with the libuv GIT 'master' branch, is typically updated weekly to monthly.
+	conflicts libuv
+
+	github.livecheck.branch v1.x
+
+}
+
+test.run         yes
+test.target      check
+
+homepage         http://libuv.org/
+
+use_autoconf     yes
+autoconf.cmd     ./autogen.sh
+
+configure.args   --disable-silent-rules
+
+depends_build    port:automake \
+                 port:autoconf \
+                 port:libtool \
+                 port:pkgconfig
