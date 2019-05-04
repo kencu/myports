@@ -1,0 +1,24 @@
+diff --git src/unix/getaddrinfo.c src/unix/getaddrinfo.c
+index 0185971..f5dcd91 100644
+--- src/unix/getaddrinfo.c
++++ src/unix/getaddrinfo.c
+@@ -202,6 +202,19 @@ void uv_freeaddrinfo(struct addrinfo* ai) {
+     freeaddrinfo(ai);
+ }
+ 
++#if ( defined(__APPLE__) && MAC_OS_X_VERSION_MAX_ALLOWED < 1070)
++size_t
++strnlen(const char *s, size_t maxlen)
++{
++       size_t len;
++
++       for (len = 0; len < maxlen; len++, s++) {
++               if (!*s)
++                       break;
++       }
++       return (len);
++}
++#endif
+ 
+ int uv_if_indextoname(unsigned int ifindex, char* buffer, size_t* size) {
+   char ifname_buf[UV_IF_NAMESIZE];

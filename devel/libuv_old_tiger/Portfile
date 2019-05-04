@@ -1,0 +1,63 @@
+PortSystem          1.0
+
+name                libuv_old_tiger
+version             1.23.2
+
+categories          devel
+platforms           darwin
+maintainers         raimue \
+                    openmaintainer
+license             {MIT BSD} 
+
+description         Cross-platform asychronous I/O
+
+long_description \
+    libuv is a multi-platform support library with a focus on asynchronous I/O.
+
+homepage            http://libuv.org/
+master_sites        http://dist.libuv.org/dist/v${version}/
+distname            ${name}-v${version}
+
+checksums           rmd160  59eb508fd8ab96f347b436d5ed255c70e02c7fca \
+                    sha256  8ab472ed816bb70c147ddbdfa7b9becfa10921df8a03faf2c87a54eac642c355 \
+                    size    1185303
+
+use_autoconf        yes
+autoconf.cmd        ./autogen.sh
+
+depends_build       port:automake \
+                    port:autoconf \
+                    port:libtool \
+                    port:pkgconfig
+
+test.run            yes
+test.target         check
+
+# add missing strnlen definition
+# can be removed if we use legacysupport portgroup instead
+# patchfiles-append   patch-src-unix-getaddrinfo-strnlen.diff
+
+# Tiger does not have sendfile or copyfile - use fallback instead
+# Tiger does not have 'st_birthtimespec' use fallback instead
+patchfiles-append   patch-src-unix-fs-Tiger.diff
+patchfiles-append   patch-test-test-fs-birthtime-use-fallback.diff
+
+# tiger does not have fsevents framework. Disable it as per iphoneOS.
+patchfiles-append   patch-src-unix-fsevents-tiger.diff
+
+# Tiger does not have TIOCPTYGNAME - use fallback instead
+patchfiles-append   patch-src-unix-tty-tiger-guard.diff
+
+
+platform darwin 8 {
+
+    # user some newer function definitions eg unsetenv
+	configure.cppflags-append -D__DARWIN_UNIX03
+	
+	# prevent conflicting opentransport header from being pulled in
+	configure.cppflags-append -D__OPENTRANSPORTPROVIDERS__
+	
+	# Tiger has no libutil
+	#patchfiles-append   patch-makefile-am-no-libutil-on-Tiger.diff
+
+}

@@ -1,0 +1,13 @@
+diff --git a/src/unix/fsevents.c b/src/unix/fsevents.c
+index 8143f7c..192f6b1 100644
+--- src/unix/fsevents.c
++++ src/unix/fsevents.c
+@@ -21,7 +21,7 @@
+ #include "uv.h"
+ #include "internal.h"
+ 
+-#if TARGET_OS_IPHONE
++#if TARGET_OS_IPHONE || ( defined(__APPLE__) && MAC_OS_X_VERSION_MAX_ALLOWED < 1050)
+ 
+ /* iOS (currently) doesn't provide the FSEvents-API (nor CoreServices) */
+ 

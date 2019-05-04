@@ -1,0 +1,11 @@
+--- src/unix/tty.c.orig	2018-11-09 19:48:41.000000000 -0800
++++ src/unix/tty.c	2018-11-09 19:55:35.000000000 -0800
+@@ -40,7 +40,7 @@
+   int dummy;
+ 
+   result = ioctl(fd, TIOCGPTN, &dummy) != 0;
+-#elif defined(__APPLE__)
++#elif ( defined(__APPLE__) && MAC_OS_X_VERSION_MAX_ALLOWED >= 1050)
+   char dummy[256];
+ 
+   result = ioctl(fd, TIOCPTYGNAME, &dummy) != 0;

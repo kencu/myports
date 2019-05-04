@@ -1,0 +1,38 @@
+--- src/unix/fs.c.orig	2018-11-10 13:22:54.000000000 -0800
++++ src/unix/fs.c	2018-11-10 13:33:18.000000000 -0800
+@@ -60,7 +60,7 @@
+ # include <sys/sendfile.h>
+ #endif
+ 
+-#if defined(__APPLE__)
++#if ( defined(__APPLE__) && MAC_OS_X_VERSION_MAX_ALLOWED >= 1050)
+ # include <copyfile.h>
+ #endif
+ 
+@@ -627,7 +627,7 @@
+ 
+     return -1;
+   }
+-#elif defined(__APPLE__)           || \
++#elif defined(__APPLE__) && MAC_OS_X_VERSION_MAX_ALLOWED >= 1050  || \
+       defined(__DragonFly__)       || \
+       defined(__FreeBSD__)         || \
+       defined(__FreeBSD_kernel__)
+@@ -778,7 +778,7 @@
+ }
+ 
+ static ssize_t uv__fs_copyfile(uv_fs_t* req) {
+-#if defined(__APPLE__) && !TARGET_OS_IPHONE
++#if ( defined(__APPLE__) && MAC_OS_X_VERSION_MAX_ALLOWED >= 1050) && !TARGET_OS_IPHONE
+   /* On macOS, use the native copyfile(3). */
+   copyfile_flags_t flags;
+ 
+@@ -901,7 +901,7 @@
+   dst->st_blksize = src->st_blksize;
+   dst->st_blocks = src->st_blocks;
+ 
+-#if defined(__APPLE__)
++#if ( defined(__APPLE__) && MAC_OS_X_VERSION_MAX_ALLOWED >= 1050)
+   dst->st_atim.tv_sec = src->st_atimespec.tv_sec;
+   dst->st_atim.tv_nsec = src->st_atimespec.tv_nsec;
+   dst->st_mtim.tv_sec = src->st_mtimespec.tv_sec;
