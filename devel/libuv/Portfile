@@ -47,11 +47,9 @@ subport libuv-devel {
 
 subport libuv-ken {
 
-	github.setup kencu libuv 1b6cd3bb22af8fe6c0d0887efb15ac8e7061dd9a
+	github.setup kencu libuv f806f2b3e91907ea1cc63ce8b73fc4f29282e5be
 	version      20190503-[string range ${github.version} 0 7]
-checksums           rmd160  38dce360f822b35ecf622786ff2ab0f21f03cc76 \
-                    sha256  a339a96e094b784b724423a093ed39706d5e3c095fd834a07e527c5758a34133 \
-                    size    1221670
+    checksum {}
 	revision     0
 
 	long_description ${long_description} \
