@@ -24,7 +24,7 @@ set branch          [join [lrange [split ${version} .] 0 1] .]
 set qt_major        [lindex [split ${version} .] 0]
 
 # Qt builds differently when it detects C++-11
-PortGroup           cxx11 1.1
+#PortGroup           cxx11 1.1
 
 master_sites        \
     https://download.qt.io/archive/qt/${branch}/${version}/submodules
@@ -768,7 +768,7 @@ foreach {module module_info} [array get modules] {
             # patchfiles-append patch-qt54-use-sysroot.diff
             
             # ken - don't force deployment target to 10.7 for c++11
-            # applies on qt53 -- KEN
+            # untested on qt53 -- KEN
             patchfiles-append patch-qt54-c++11-106OK.diff
             
             # ken -- there are modification needed to the MacOSX10.6.sdk
@@ -792,10 +792,8 @@ foreach {module module_info} [array get modules] {
 #			#endif
 #			*/
 
-            patchfiles-append patch-qt53-SL-nispro.diff
-
             # https://github.com/qt/qtbase/commit/cf63c63d558227fdbef09699c261560e7474f5ea
-            # applies on qt53 -- KEN
+            # untested on qt53 -- KEN
             patchfiles-append patch-qt54-fix-nullable-clang.diff
 
             # allow build against MacOSX10.6.sdk
@@ -804,10 +802,7 @@ foreach {module module_info} [array get modules] {
 #            patchfiles-append patch-qt54-qcocoaintegration-backingscalefactor.diff
 #            patchfiles-append patch-qt54-qcocoawindow.diff
 
-            # xcrun on 10.6 works differently than on 10.7+. It does not accept a full pathspec to a tool.
-            # so we instead have to disable adding the SDK tool prefix in configure to allow MacPorts-installed compilers to be used
-            # qt53 - KEN
-            patchfiles-append patch-qt53-disable-macsdkify.diff
+
 
 
 
@@ -850,23 +845,26 @@ foreach {module module_info} [array get modules] {
                     reinplace \
                         "s|__MACPORTS_CXX__|clang++|g" \
                         ${worksrcpath}/mkspecs/common/clang.conf
-                    reinplace \
-                        "s|@@PREFIX@@|${prefix}|g" \
-                        ${worksrcpath}/mkspecs/common/clang.conf
                 }
             } else {
-               post-patch {
-                   reinplace \
-                       "s|__MACPORTS_CC__|${configure.cc}|g" \
-                       ${worksrcpath}/mkspecs/common/clang.conf
-
-                   reinplace \
-                       "s|__MACPORTS_CXX__|${configure.cxx}|g" \
-                       ${worksrcpath}/mkspecs/common/clang.conf
+#                post-patch {
+#                    reinplace \
+#                        "s|__MACPORTS_CC__|${configure.cc}|g" \
+#                        ${worksrcpath}/mkspecs/common/clang.conf
+#
+#                    reinplace \
+#                        "s|__MACPORTS_CXX__|${configure.cxx}|g" \
+#                        ${worksrcpath}/mkspecs/common/clang.conf
+#                }
+                post-patch {
                     reinplace \
-                        "s|@@PREFIX@@|${prefix}|g" \
+                        "s|__MACPORTS_CC__|clang|g" \
                         ${worksrcpath}/mkspecs/common/clang.conf
-               }
+
+                    reinplace \
+                        "s|__MACPORTS_CXX__|clang++|g" \
+                        ${worksrcpath}/mkspecs/common/clang.conf
+                }
             }
 
             if { [string match macports-clang-* ${configure.compiler}] && [vercmp ${xcodeversion} "7.0"] >= 0 } {
