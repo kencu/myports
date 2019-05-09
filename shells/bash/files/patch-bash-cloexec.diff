@@ -1,0 +1,13 @@
+--- ./examples/loadables/fdflags.c.orig	2019-05-08 20:31:35.000000000 -0700
++++ ./examples/loadables/fdflags.c	2019-05-08 20:37:49.000000000 -0700
+@@ -32,6 +32,10 @@
+ 
+ #include "loadables.h"
+ 
++#ifndef O_CLOEXEC
++#define O_CLOEXEC 0
++#endif
++
+ static const struct
+ {
+   const char *name;
