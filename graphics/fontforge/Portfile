@@ -45,26 +45,34 @@ depends_lib         path:lib/pkgconfig/cairo.pc:cairo \
                     port:woff2 \
                     port:zlib
 
-# Legacy systems support
 # Needs C11
 #compiler.c_standard 2011
 compiler.blacklist  {clang < 500} *gcc-4.2 gcc-4.0 gcc-3.3
 configure.cflags-append -std=gnu11
 
-# see https://github.com/fontforge/fontforge/issues/3164
+# fix 32bit builds by masking an old Carbon call to GetTime
+patchfiles-append   patch-fontforge-carbon-gettime-namecollision.diff
+
+# use older noerr macros, and replace missing SRefCon definition
 if {${os.platform} eq "darwin" && ${os.major} <= 9} {
     patchfiles-append \
-                patch-fontforge-require-noerr.diff \
-                patch-fontforge-carbon-gettime-namecollision.diff
+                patch-fontforge-startui-require-noerr-and-SRefCon-fix.diff \
 }
-# /Legacy systems support
+
+# the date command on Tiger is too old for this port, use gnu coreutils dates instead
+platform darwin 8 {
+    depends_build-append port:coreutils
+    configure.env-append PATH=${prefix}/libexec/gnubin/:$env(PATH)
+}
+
 
 configure.args      --mandir=${prefix}/share/man \
                     --disable-python-scripting \
                     --disable-python-extension \
                     --without-x \
                     --enable-woff2 \
-                    --disable-silent-rules
+                    --disable-silent-rules \
+                    --enable-gdk=yes
 
 
 
