@@ -1,0 +1,29 @@
+--- Makefile.in.orig	2019-04-04 05:39:43.000000000 -0700
++++ Makefile.in	2019-09-30 20:50:49.000000000 -0700
+@@ -118,7 +118,7 @@
+ $(GUI_APP)$(EXEEXT): $(OBJ_DIR) $(GUI_OBJS)
+ 	$(CXX) -o $@ $(LDFLAGS) $(GUI_OBJS) $(GUI_LIBS) $(LIBS)
+ 
+-$(APP)_app: $(APP) $(OSX_DOCS) ../../README ../MacOSX/Info.plist ../MacOSX/$(APP).icns
++$(APP)_app: $(APP) $(OSX_DOCS) ../../README.md ../MacOSX/Info.plist ../MacOSX/$(APP).icns
+ 	rm -rf $(APP_APP)/Contents
+ 	mkdir -p $(APP_APP)/Contents
+ 	./cpr.sh ../MacOSX/Info.plist $(APP_APP)/Contents/
+@@ -130,7 +130,7 @@
+ 	./cpr.sh ../MacOSX/$(APP).icns $(APP_APP)/Contents/Resources/
+ 	./cpr.sh ../MacOSX/English.lproj $(APP_APP)/Contents/Resources/
+ 	cp -f $(OSX_DOCS) $(APP_APP)/Contents/Resources/
+-	cp -f ../../README $(APP_APP)/Contents/Resources/README.txt
++	cp -f ../../README.md $(APP_APP)/Contents/Resources/README.txt
+ 
+ $(GUI_APP)_app: $(GUI_APP) ../MacOSX/Info.plist ../MacOSX/$(APP).icns
+ 	rm -rf $(GUI_APP_APP)/Contents
+@@ -141,7 +141,7 @@
+ 	./cpr.sh $(GUI_APP) $(GUI_APP_APP)/Contents/MacOS/
+ 	strip -x $(GUI_APP_APP)/Contents/MacOS/$(GUI_APP)
+ 	mkdir -p $(GUI_APP_APP)/Contents/Resources
+-	./cpr.sh ../MacOSX/$(APP).icns $(GUI_APP_APP)/Contents/Resources/$(GUI_APP).icns
++	ditto ../MacOSX/$(APP).icns $(GUI_APP_APP)/Contents/Resources/$(GUI_APP).icns
+ 
+ modules:
+ 	cd Linux/NetDriver; make
