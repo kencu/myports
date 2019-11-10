@@ -1,0 +1,60 @@
+# -*- coding: utf-8; mode: tcl; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- vim:fenc=utf-8:ft=tcl:et:sw=4:ts=4:sts=4
+
+PortSystem          1.0
+PortGroup           github 1.0
+PortGroup           cmake 1.1
+
+compiler.cxx_standard 2014
+
+categories          mail
+platforms           darwin
+maintainers         nomaintainer
+license             GPL-3+
+
+description         lightweight and fast Mail User Agent
+
+long_description    Astroid is a lightweight and fast Mail User Agent that provides a\
+                    graphical interface to searching, displaying and composing email,\
+                    organized in threads and tags. Astroid uses the notmuch backend for\
+                    blazingly fast searches through tons of email. Astroid searches,\
+                    displays and composes emails - and rely on other programs for\
+                    fetching, syncing and sending email.
+
+github.setup        astroidmail astroid 0.15 v
+revision            0
+
+checksums           rmd160  a7babb6609724a7b8fe950bc1321ee61b2af7609 \
+                    sha256  0eb8a5d9d6f48eb79a64a35e7dc0919ee0d20c3104c0f7b2c2d185c6ec24df34 \
+                    size    3365848
+
+# the embedded editor is said not to build on APPLE, but seems to build fine...
+# patchfiles-append   patch-astroid-enable-editor-apple.diff
+
+depends_build-append \
+                    port:pkgconfig \
+                    port:libffi \
+                    port:scdoc \
+                    port:gobject-introspection
+
+depends_lib-append  port:notmuch \
+                    port:gmime3 \
+                    port:gtkmm3 \
+                    port:cairomm \
+                    port:pangomm \
+                    path:lib/pkgconfig/webkit2gtk-4.0.pc:webkit2-gtk \
+                    port:libsass \
+                    port:boost \
+                    port:libsoup \
+                    port:glib2 \
+                    port:glibmm \
+                    port:protobuf3-cpp \
+                    port:vte \
+                    port:libpeas \
+                    port:pango \
+                    port:atk \
+                    port:gettext \
+                    port:libsigcxx2
+
+test.run            yes
+# fix test run, doesn't affect install_names
+configure.args-append -DCMAKE_BUILD_WITH_INSTALL_RPATH=OFF

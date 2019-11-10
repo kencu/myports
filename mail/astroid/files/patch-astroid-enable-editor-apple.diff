@@ -1,0 +1,23 @@
+--- CMakeLists.txt.orig	2019-10-26 17:55:13.000000000 -0700
++++ CMakeLists.txt	2019-10-26 17:55:34.000000000 -0700
+@@ -441,17 +441,17 @@
+   add_definitions ( -DDISABLE_EMBEDDED )
+   message (STATUS "Disabling embedded editor.")
+ else(DISABLE_EMBEDDED_EDITOR)
+-  if (APPLE)
++  if (NOTAPPLE)
+     message (WARNING "Embedded editor cannot be built on macOS; disabling embedded editor.")
+     add_definitions ( -DDISABLE_EMBEDDED )
+-  else(APPLE)
++  else(NOTAPPLE)
+     target_sources (
+       hypocycloid
+       PRIVATE
+       src/modes/editor/editor.cc
+       src/modes/editor/plugin.cc
+       )
+-  endif(APPLE)
++  endif(NOTAPPLE)
+ endif(DISABLE_EMBEDDED_EDITOR)
+ 
+ ##
