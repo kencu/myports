@@ -1,0 +1,30 @@
+# -*- coding: utf-8; mode: tcl; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- vim:fenc=utf-8:ft=tcl:et:sw=4:ts=4:sts=4
+
+PortSystem          1.0
+PortGroup           github 1.0
+categories          sysutils
+platforms           darwin
+maintainers         nomaintainer
+license             BSD
+description         An open source reimplementation of Apple's command-line xcode utilities
+long_description    ${description}
+github.setup        b-man xcode-tools 70d30a9f06abd3b6eaddae066de44bd34b233dd6
+version             20141219
+revision            0
+checksums           rmd160  ab6ead35c0a28ab494b3ca3f804ee312faa95d94 \
+                    sha256  276bde4c4016c38cde474197eabd2a91581759d306476a8fd60878ea08b79736 \
+                    size    16114
+use_configure       no
+
+variant universal   {}
+build.env           CXX=${configure.cxx} \
+                    "CXXFLAGS=${configure.cxxflags} [get_canonical_archflags cxx]" \
+                    CC=${configure.cc} \
+                    "CFLAGS=${configure.cflags} [get_canonical_archflags cc]" \
+                    "LDFLAGS=${configure.ldflags} [get_canonical_archflags ld]"
+
+destroot {
+    copy ${worksrcpath}/xcrun/xcrun ${destroot}${prefix}/bin
+    copy ${worksrcpath}/xcode-select/xcode-select ${destroot}${prefix}/bin
+    copy ${worksrcpath}/configs/xcrun.ini ${destroot}${prefix}/etc
+}
