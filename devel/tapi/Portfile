@@ -1,0 +1,59 @@
+# -*- coding: utf-8; mode: tcl; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- vim:fenc=utf-8:ft=tcl:et:sw=4:ts=4:sts=4
+
+PortSystem          1.0
+PortGroup           cmake 1.1
+
+name                tapi
+version             1000.10.8
+revision            0
+categories          devel
+platforms           darwin
+maintainers         {kencu @kencu} openmaintainer
+
+license             APSL-2
+description         ${name} adds ld64 linker support for text-based API libraries
+long_description    ${description}. Newer MacOS SDKs contain only these stubs.
+
+homepage            http://opensource.apple.com/source/${name}/
+master_sites        http://opensource.apple.com/tarballs/${name}:tapi \
+                    https://github.com/apple/swift-llvm/archive:llvm  \
+                    https://github.com/apple/swift-clang/archive:clang
+
+distfiles           ${name}-${version}.tar.gz:tapi  \
+                    swift-4.2.2-RELEASE.tar.gz:llvm \
+                    swift-4.2.4-RELEASE.tar.gz:clang
+
+checksums           tapi-1000.10.8.tar.gz \
+                    rmd160  f5aad7f6ed579ce83d1206910ea8885043b4ebdb \
+                    sha256  827e996529974305ef7933f3fa790f7ed068caa29db8f8c30b8a83c6826503f7 \
+                    size    205606 \
+                    swift-4.2.2-RELEASE.tar.gz \
+                    rmd160  bc36eab3ff3e5acf8c77a4b49dbd5cc3dbc75575 \
+                    sha256  50dafb7fa0c31e93b70e19a67e0f4a13f9dd9afc5dc507fd231a495edd7abdbd \
+                    size    37970663 \
+                    swift-4.2.4-RELEASE.tar.gz \
+                    rmd160  d83ffec2a76202da8e6ff0a994f222711bca49cc \
+                    sha256  74d27ed9f0371334de1ae9ad63d60869c60b6dca6ad6d7a39e6f2804e6007013 \
+                    size    17248048
+
+depends_build-append port:python27
+depends_lib-append  port:libxml2
+
+worksrcdir          tapi_build
+
+post-extract {
+    file mkdir ${workpath}/${worksrcdir}
+    file rename ${workpath}/swift-llvm-swift-4.2.2-RELEASE ${worksrcpath}/llvm
+    file rename ${workpath}/swift-clang-swift-4.2.4-RELEASE ${worksrcpath}/clang
+    file rename ${workpath}/${name}-${version} ${worksrcpath}/tapi
+}
+
+compiler.cxx_standard 2011
+
+configure.pre_args-replace -DCMAKE_BUILD_TYPE=MacPorts \
+                           -DCMAKE_BUILD_TYPE=Release
+configure.args      -C ${worksrcpath}/tapi/cmake/caches/apple-tapi.cmake
+configure.post_args ${worksrcpath}/llvm
+
+build.target        distribution
+destroot.target     install-distribution
