@@ -11,8 +11,8 @@ platforms           darwin
 maintainers         {kencu @kencu} openmaintainer
 
 license             APSL-2
-description         ${name} adds ld64 linker support for text-based API libraries
-long_description    ${description}. Newer MacOS SDKs contain only these stubs.
+description         ${name} adds ld64 linker support for text-based API libraries.
+long_description    ${description} Newer MacOS SDKs contain only these TAPI stubs.
 
 homepage            http://opensource.apple.com/source/${name}/
 master_sites        http://opensource.apple.com/tarballs/${name}:tapi \
@@ -37,7 +37,7 @@ checksums           tapi-1000.10.8.tar.gz \
                     size    17248048
 
 depends_build-append port:python27
-depends_lib-append  port:libxml2
+depends_lib-append   port:libxml2
 
 worksrcdir          tapi_build
 
