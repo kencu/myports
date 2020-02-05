@@ -4,8 +4,6 @@ PortSystem              1.0
 PortGroup               github 1.0
 PortGroup               legacysupport 1.0
 PortGroup               cmake 1.1
-PortGroup               compiler_blacklist_versions 1.0
-
 
 github.setup            flang-compiler f18 003b664229a91b1692b52014ef6f9c9b65119b0d
 checksums               rmd160  2bca2314b511397e86c5fb6b699c28e0927d23d9 \
@@ -23,10 +21,22 @@ license                 Apache-2.0
 description             ${name} is a fortran compiler using llvm as backend.
 long_description        ${description}
 
-compiler.whitelist      macports-clang-8.0
+compiler.cxx_standard   2017
+
+# untested upstream against Xcode clang, and I don't see any cmake scripts in Xcode llvm
+compiler.blacklist-append clang
+
+# this project requires an install of the companies free fortran compiler
+# pgf90, from here https://www.pgroup.com/index.htm
+
+
+# it seems to be statically linked, so no dependency on any installed llvm once built
 
 configure.pre_args-replace -DCMAKE_BUILD_TYPE=MacPorts -DCMAKE_BUILD_TYPE=Release
-configure.args-append   -DLLVM_DIR=${prefix}/libexec/llvm-8.0/lib/cmake/llvm
+if {[string match macports-clang-* ${configure.compiler}]} {
+    set clangversion        [lindex [split ${configure.compiler} -] 2]
+    configure.args-append   -DLLVM_DIR=${prefix}/libexec/llvm-$clangversion/lib/cmake/llvm
+}
 
 test.run                yes
-test.target             check-all
+test.target             test
