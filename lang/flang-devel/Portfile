@@ -1,0 +1,32 @@
+# -*- coding: utf-8; mode: tcl; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- vim:fenc=utf-8:ft=tcl:et:sw=4:ts=4:sts=4
+
+PortSystem              1.0
+PortGroup               github 1.0
+PortGroup               legacysupport 1.0
+PortGroup               cmake 1.1
+PortGroup               compiler_blacklist_versions 1.0
+
+
+github.setup            flang-compiler f18 003b664229a91b1692b52014ef6f9c9b65119b0d
+checksums               rmd160  2bca2314b511397e86c5fb6b699c28e0927d23d9 \
+                        sha256  878336b04d382955f219556a87c057ff5e458388c98038559e2e7f9ca782257d \
+                        size    891552
+
+name                    flang-devel
+version                 20200204
+revision                0
+categories              lang
+platforms               darwin
+maintainers             {kencu @kencu} openmaintainer
+
+license                 Apache-2.0
+description             ${name} is a fortran compiler using llvm as backend.
+long_description        ${description}
+
+compiler.whitelist      macports-clang-8.0
+
+configure.pre_args-replace -DCMAKE_BUILD_TYPE=MacPorts -DCMAKE_BUILD_TYPE=Release
+configure.args-append   -DLLVM_DIR=${prefix}/libexec/llvm-8.0/lib/cmake/llvm
+
+test.run                yes
+test.target             check-all
