@@ -1,0 +1,212 @@
+# -*- coding: utf-8; mode: tcl; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- vim:fenc=utf-8:ft=tcl:et:sw=4:ts=4:sts=4
+PortSystem              1.0
+PortGroup               github 1.0
+PortGroup               cmake 1.1
+PortGroup               active_variants 1.1
+
+cmake.generator         Ninja
+
+set llvm-commit         d48d339156916b4dd87a8c06c1c242fd794f08e5
+set date                20200219
+
+# for release, use numerical version
+# set llvm_version        11
+set llvm_version        devel
+
+github.setup      	    llvm llvm-project ${llvm-commit}
+
+checksums               rmd160  dc742963b19c38e1c94a6e6c1e8c06e2e5f9c0f1 \
+                        sha256  b95ef5caf1baee8e8d06f6c455cdf37831ea00e6658705387ee29b7db1ddfaaa \
+                        size    115647109
+
+name                    llvm-${llvm_version}
+revision                0
+subport                 clang-${llvm_version} {revision 0}
+subport                 lldb-${llvm_version}  {revision 0}
+
+# for release, use      ${llvm_version}
+# version                 ${llvm_version}
+version                 ${date}-[string range ${llvm-commit} 0 7]
+
+dist_subdir             llvm
+set suffix              mp-${llvm_version}
+set sub_prefix          ${prefix}/libexec/llvm-${llvm_version}
+cmake.install_prefix    ${sub_prefix}
+
+categories              lang
+platforms               darwin
+maintainers             {jeremyhu @jeremyhu} {kencu @kencu} openmaintainer
+
+license                 NCSA
+description             ${name}
+long_description        ${description}
+
+homepage                http://llvm.org
+
+worksrcdir              llvm-project/llvm
+post-extract {
+    move ${workpath}/llvm-project-${llvm-commit} ${workpath}/llvm-project
+}
+
+compiler.cxx_standard   2014
+default_variants-append +assertions
+
+
+# delete the cmake PG's default rpath settings. See (1).
+configure.args-delete \
+    -DCMAKE_INSTALL_NAME_DIR=${cmake.install_prefix}/lib \
+    -DCMAKE_INSTALL_RPATH="${prefix}/lib\;${cmake.install_prefix}/lib" \
+    -DCMAKE_SYSTEM_PREFIX_PATH="${prefix}\;/usr"
+
+configure.args-append   \
+    -DLLVM_ENABLE_FFI=ON \
+    -DFFI_INCLUDE_DIR=[exec pkg-config --cflags-only-I libffi | sed "s/-I//"] \
+    -DFFI_LIBRARY_DIR=${prefix}/lib
+
+configure.pre_args-replace \
+    -DCMAKE_BUILD_TYPE=MacPorts -DCMAKE_BUILD_TYPE=RelWithDebInfo
+
+configure.args-append   -DLLVM_ENABLE_ASSERTIONS=OFF
+
+if {${subport} eq "llvm-${llvm_version}"} {
+
+    homepage            https://llvm.org/
+    description         llvm is a next generation compiler infrastructure
+    long_description    The LLVM Core libraries provide a modern source- and \
+                        target-independent optimizer, along with code \
+                        generation support for many popular CPUs (as well as \
+                        some less common ones!) These libraries are built \
+                        around a well specified code representation known as \
+                        the LLVM intermediate representation ("LLVM IR").
+
+    depends_lib         port:libedit port:libffi port:ncurses path:lib/libxar.dylib:xar port:zlib
+    depends_run         bin:perl:perl5 port:llvm_select
+
+    # restrict targets for development at least
+    configure.args-append    -DLLVM_TARGETS_TO_BUILD="X86"
+    # these are Apple's default LLVM targets
+    # configure.args-append    -DLLVM_TARGETS_TO_BUILD=\"X86\;ARM\;AArch64\"
+
+    variant polly description {Provide the polly polyhedral optimizer} {
+        configure.args-append   -DLLVM_ENABLE_PROJECTS="polly"
+    }
+}
+
+if {${subport} eq "clang-${llvm_version}"} {
+
+    # Need to match llvm +/- assertions
+    if {[variant_isset assertions]} {
+        require_active_variants port:llvm-${llvm_version} assertions
+    } else {
+        require_active_variants port:llvm-${llvm_version} {} assertions
+    }
+
+    # the build of clang fails if libc++ is not also built
+    # the built 1st stage compiler tries to link against libstdc++ and finds an old version
+    configure.args-append   -DLLVM_ENABLE_PROJECTS="clang\;libcxx\;libcxxabi"
+
+    # use Apple's cmake cache file to configure a 2-stage build
+    configure.pre_args-append -C ${workpath}/llvm-project/clang/cmake/caches/Apple-stage1.cmake
+
+	# Creating a toolchain is not working. See (2).
+    configure.args-append   -DBOOTSTRAP_LLVM_CREATE_XCODE_TOOLCHAIN=OFF
+
+	build.target            stage2-distribution
+	destroot.target         stage2-install-distribution
+}
+
+if {${subport} eq "lldb-${llvm_version}"} {
+    configure.args-append   -DLLVM_ENABLE_PROJECTS="lldb"
+	build.target            lldb-distribution
+	destroot.target         lldb-install-distribution
+}
+
+variant assertions description "Enable assertions for error detection (has performance impacts, especially on JIT)" {
+    configure.args-delete -DLLVM_ENABLE_ASSERTIONS=OFF
+    configure.args-append -DLLVM_ENABLE_ASSERTIONS=ON
+}
+
+variant tests description {Enable building of test code} {
+    test.run                yes
+    configure.args-append   -DLLVM_INCLUDE_TESTS=ON
+    test.target             check
+}
+
+livecheck.type          none
+
+
+
+
+
+########## Notes #######
+
+# (1)
+# clang shared libraries are not all installed in ${cmake.install_prefix}/lib
+# so we have to let the llvm/clang cmake scripts handle the @rpath setting
+# See:
+#     https://llvm.org/bugs/show_bug.cgi?id=31425
+#     https://trac.macports.org/ticket/53299
+
+
+
+# (2)
+# Creating a toolchain is not working. The cmake files seem out of date
+# and are referencing xcode 8. The build is failing with this turned on, and is showing 
+# this error:
+# CMake Error at tools/xcode-toolchain/CMakeLists.txt:52 (string):
+#  string sub-command REGEX, mode MATCH needs at least 5 arguments total to
+#  command.
+# CMake Warning at tools/xcode-toolchain/CMakeLists.txt:60 (message):
+#  Failed to detect the version of an installed copy of Xcode, falling back to
+#  highest supported version.  Set XCODE_VERSION to override.
+# CMake Error at tools/xcode-toolchain/CMakeLists.txt:80 (message):
+#  Could not identify toolchain dir
+# -- Configuring incomplete, errors occurred!
+
+
+
+
+# snippets for later use
+#if {[string match macports-clang-* ${configure.compiler}]} {
+
+#    depends_build-append port:cctools
+#    depends_skip_archcheck-append cctools
+#    configure.args-append   -DCMAKE_LIBTOOL=${prefix}/bin/libtool
+
+#    if {${os.platform} eq "darwin" && ${os.major} < 11} {
+        # the default ld64-127 linker cannot build this with LTO at present in this configuration
+        # if we could test the linker version, we might be able to enable it
+        # if a newer linker than 127 is installed -- not sure where the cutoff is
+#        configure.args-append -DLLVM_ENABLE_LTO=OFF
+#    } else {
+        # libtool will error on llvm bitcode generated by a clang version
+        # newer than the libLTO.dylib cctools is built against
+        # making sure cctools is built against the newest llvm in use prevents this, but we can't
+        # always guarantee that will be the case
+
+        # we can instead set DYLD_LIBRARY_PATH to the libLTO.dylib that matches the building clang
+        # then libtool will use that libLTO.dylib instead, which matches the clang objects
+
+#        set clangversion        [lindex [split ${configure.compiler} -] 2]
+#        build.env               DYLD_LIBRARY_PATH=${prefix}/libexec/llvm-$clangversion/lib/
+#    }
+#}
+
+#if {${os.platform} eq "darwin" && ${os.major} < 11} {
+    # Proxy for eliminating the dependency on native TLS
+    # http://trac.macports.org/ticket/46887
+#    configure.args-append -DLLVM_ENABLE_BACKTRACES=OFF
+
+    # https://llvm.org/bugs/show_bug.cgi?id=25680
+#    configure.cxxflags-append -U__STRICT_ANSI__
+
+    # remove need for port:libxml2 dependency
+#    depends_lib-delete port:libxml2
+#    configure.args-append -DLIBXML2_LIBRARIES=IGNORE
+
+    # os versions < 11 did not have python2.7
+#    depends_build-append    port:python27
+#    configure.args-append   -DPYTHON_EXECUTABLE=${prefix}/bin/python2.7
+#    depends_skip_archcheck-append python27
+#}
+
