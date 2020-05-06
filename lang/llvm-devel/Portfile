@@ -6,8 +6,8 @@ PortGroup               active_variants 1.1
 
 cmake.generator         Ninja
 
-set llvm-commit         d48d339156916b4dd87a8c06c1c242fd794f08e5
-set date                20200219
+set llvm-commit         6d6d48add8a8fcfbc311648a1d6b1ccc6e1e8b26
+set date                20200505
 
 # for release, use numerical version
 # set llvm_version        11
@@ -15,9 +15,9 @@ set llvm_version        devel
 
 github.setup            llvm llvm-project ${llvm-commit}
 
-checksums               rmd160  dc742963b19c38e1c94a6e6c1e8c06e2e5f9c0f1 \
-                        sha256  b95ef5caf1baee8e8d06f6c455cdf37831ea00e6658705387ee29b7db1ddfaaa \
-                        size    115647109
+checksums               rmd160  b148e3ea84e63534ffac75bbe031d8343b65e55d \
+                        sha256  f24a6c752717a57c11d8323dbf2cd869a436e64070cf8c8e84deee7d4fb62787 \
+                        size    118617893
 
 name                    llvm-${llvm_version}
 revision                0
@@ -48,19 +48,27 @@ post-extract {
     move ${workpath}/llvm-project-${llvm-commit} ${workpath}/llvm-project
 }
 
-compiler.cxx_standard   2014
+# hand-tweaked, approximately c++ standard 2014
+compiler.blacklist *gcc* {clang < 801} macports-clang-3.*
+compiler.fallback   clang macports-clang-9.0
+
+
 default_variants-append +assertions
 
+depends_build-append    port:pkgconfig
 
 # delete the cmake PG's default rpath settings. See (1).
 configure.args-delete \
     -DCMAKE_INSTALL_NAME_DIR=${cmake.install_prefix}/lib \
-    -DCMAKE_INSTALL_RPATH="${prefix}/lib\;${cmake.install_prefix}/lib" \
-    -DCMAKE_SYSTEM_PREFIX_PATH="${prefix}\;/usr"
+    -DCMAKE_INSTALL_RPATH="${prefix}/lib\;${cmake.install_prefix}/lib"
+
+configure.args-replace \
+    -DCMAKE_SYSTEM_PREFIX_PATH="${prefix}\;/usr" \
+    -DCMAKE_SYSTEM_PREFIX_PATH="${cmake.install_prefix}\;${prefix}\;/usr"
 
 configure.args-append   \
     -DLLVM_ENABLE_FFI=ON \
-    -DFFI_INCLUDE_DIR=[exec pkg-config --cflags-only-I libffi | sed "s/-I//"] \
+    -DFFI_INCLUDE_DIR=`pkg-config --cflags-only-I libffi | sed \"s/-I//\"` \
     -DFFI_LIBRARY_DIR=${prefix}/lib
 
 configure.pre_args-replace \
@@ -103,16 +111,16 @@ if {${subport} eq "clang-${llvm_version}"} {
 
     # the build of clang fails if libc++ is not also built
     # the built 1st stage compiler tries to link against libstdc++ and finds an old version
-    configure.args-append   -DLLVM_ENABLE_PROJECTS="clang\;libcxx\;libcxxabi"
+    configure.args-append   -DLLVM_ENABLE_PROJECTS="clang\;clang-tools-extra\;compiler-rt\;libc\;libcxx\;libcxxabi\;flang"
 
     # use Apple's cmake cache file to configure a 2-stage build
-    configure.pre_args-append -C ${workpath}/llvm-project/clang/cmake/caches/Apple-stage1.cmake
+    #configure.pre_args-append -C ${workpath}/llvm-project/clang/cmake/caches/Apple-stage1.cmake
 
     # Creating a toolchain is not working. See (2).
-    configure.args-append   -DBOOTSTRAP_LLVM_CREATE_XCODE_TOOLCHAIN=OFF
+    #configure.args-append   -DBOOTSTRAP_LLVM_CREATE_XCODE_TOOLCHAIN=OFF
 
-    build.target            stage2-distribution
-    destroot.target         stage2-install-distribution
+    #build.target            stage2-distribution
+    #destroot.target         stage2-install-distribution
 }
 
 if {${subport} eq "lldb-${llvm_version}"} {
@@ -131,6 +139,35 @@ variant tests description {Enable building of test code} {
     configure.args-append   -DLLVM_INCLUDE_TESTS=ON
     test.target             check
 }
+
+
+post-destroot {
+    foreach bin [glob ${destroot}${sub_prefix}/bin/*] {
+        set bin_filename [string map "${sub_prefix} ${prefix}" ${bin}]-${suffix}
+        set exec_path [string map "${destroot}${sub_prefix} ${sub_prefix}" ${bin}]
+
+        # see https://trac.macports.org/ticket/54985
+        if {${os.platform} eq "darwin" && [vercmp ${xcodeversion} 4.6] < 0} {
+             xinstall -m 755 "${filespath}/llvm-bin-compat" "${bin_filename}"
+        } else {
+             xinstall -m 755 "${filespath}/llvm-bin" "${bin_filename}"
+        }
+
+        reinplace "s:EXEC_PATH:${exec_path}:" "${bin_filename}"
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
 
 livecheck.type          none
 
