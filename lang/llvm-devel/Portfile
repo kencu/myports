@@ -13,6 +13,9 @@ set date                20200505
 # set llvm_version        11
 set llvm_version        devel
 
+# this needs to be set to the next numerical version
+set clang_executable_version 11
+
 github.setup            llvm llvm-project ${llvm-commit}
 
 checksums               rmd160  b148e3ea84e63534ffac75bbe031d8343b65e55d \
@@ -91,7 +94,7 @@ if {${subport} eq "llvm-${llvm_version}"} {
     depends_run         bin:perl:perl5 port:llvm_select
 
     # restrict targets for development at least
-    configure.args-append    -DLLVM_TARGETS_TO_BUILD="X86"
+    #configure.args-append    -DLLVM_TARGETS_TO_BUILD="X86"
     # these are Apple's default LLVM targets
     # configure.args-append    -DLLVM_TARGETS_TO_BUILD=\"X86\;ARM\;AArch64\"
 
@@ -109,9 +112,11 @@ if {${subport} eq "clang-${llvm_version}"} {
         require_active_variants port:llvm-${llvm_version} {} assertions
     }
 
-    # the build of clang fails if libc++ is not also built
-    # the built 1st stage compiler tries to link against libstdc++ and finds an old version
-    configure.args-append   -DLLVM_ENABLE_PROJECTS="clang\;clang-tools-extra\;compiler-rt\;libc\;libcxx\;libcxxabi\;flang"
+    # clang project requires libcxx project
+    # else the built 1st stage compiler tries to link against libstdc++ and finds an old version
+    # flang project requires mlir project
+    # libc project not building on darwin
+    configure.args-append   -DLLVM_ENABLE_PROJECTS="clang\;clang-tools-extra\;compiler-rt\;libcxx\;libcxxabi\;flang\;mlir"
 
     # use Apple's cmake cache file to configure a 2-stage build
     #configure.pre_args-append -C ${workpath}/llvm-project/clang/cmake/caches/Apple-stage1.cmake
@@ -140,8 +145,35 @@ variant tests description {Enable building of test code} {
     test.target             check
 }
 
-
 post-destroot {
+    # do some fixups
+
+    if {${subport} eq "llvm-${llvm_version}"} {
+        # https://llvm.org/bugs/show_bug.cgi?id=19465
+        if {[variant_isset polly]} {
+            ln -s LLVMPolly.so ${destroot}${sub_prefix}/lib/LLVMPolly.dylib
+        }
+    }
+
+	if {${subport} eq "clang-${llvm_version}"} {
+		# file of this name is already installed by the llvm subport
+		if {[file exists ${destroot}${sub_prefix}/bin/bugpoint]} {
+			delete ${destroot}${sub_prefix}/bin/bugpoint
+		}
+
+		delete ${destroot}${sub_prefix}/bin/clang
+		file rename ${destroot}${sub_prefix}/bin/clang-${clang_executable_version} ${destroot}${sub_prefix}/bin/clang
+#		reinplace "s|/bin/clang-${clang_executable_version}|/bin/clang|g" \
+#			"${destroot}${sub_prefix}/lib/cmake/clang/ClangTargets-release.cmake"
+
+        # http://trac.macports.org/ticket/33207
+        ln -s ${prefix}/libexec/ld64/ld ${destroot}${sub_prefix}/bin/ld
+	}
+
+    if {${subport} eq "lldb-${llvm_version}"} {
+        delete ${destroot}${prefix}/bin/debugserver-${suffix}
+    }
+
     foreach bin [glob ${destroot}${sub_prefix}/bin/*] {
         set bin_filename [string map "${sub_prefix} ${prefix}" ${bin}]-${suffix}
         set exec_path [string map "${destroot}${sub_prefix} ${sub_prefix}" ${bin}]
@@ -200,6 +232,13 @@ livecheck.type          none
 #  Could not identify toolchain dir
 # -- Configuring incomplete, errors occurred!
 
+# (3)
+# target libc is not working on Darwin 18 at least
+#CMake Warning at /opt/local/var/macports/build/_opt_myports_lang_llvm-devel/clang-devel/work/llvm-project/libc/cmake/modules/LLVMLibCObjectRules.cmake:95 (message):
+#  Aliasee libc.src.signal.darwin.raise for entrypoint alias raise missing;
+#  Target raise will be ignored.
+#Call Stack (most recent call first):
+#  /opt/local/var/macports/build/_opt_myports_lang_llvm-devel/clang-devel/work/llvm-project/libc/src/signal/CMakeLists.txt:5 (add_entrypoint_object)
 
 
 
