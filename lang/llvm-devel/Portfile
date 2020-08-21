@@ -69,6 +69,10 @@ configure.args-replace \
     -DCMAKE_SYSTEM_PREFIX_PATH="${prefix}\;/usr" \
     -DCMAKE_SYSTEM_PREFIX_PATH="${cmake.install_prefix}\;${prefix}\;/usr"
 
+configure.args-replace \
+    -DCMAKE_BUILD_WITH_INSTALL_RPATH:BOOL=ON \
+    -DCMAKE_BUILD_WITH_INSTALL_RPATH:BOOL=OFF
+
 configure.args-append   \
     -DLLVM_ENABLE_FFI=ON \
     -DFFI_INCLUDE_DIR=`pkg-config --cflags-only-I libffi | sed \"s/-I//\"` \
