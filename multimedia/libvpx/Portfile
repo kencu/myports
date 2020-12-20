@@ -69,13 +69,18 @@ configure.args      --enable-vp8 \
                     --enable-pic \
                     --enable-postproc \
                     --enable-multithread \
-                    --enable-runtime-cpu-detect \
                     --enable-experimental \
                     --enable-shared \
                     --disable-install-docs \
                     --disable-debug-libs \
                     --disable-examples \
                     --disable-unit-tests
+
+# for intel systems, enable runtime cpu features
+# for arm64 on darwin, don't and this fails anyway
+if {${os.platform} in "i386 x86_64"} {
+    configure.args-append --enable-runtime-cpu-detect
+}
 
 configure.env       LD=${configure.cc}
 
@@ -117,7 +122,7 @@ set my_targets(arm64)     arm64
 foreach my_arch {i386 x86_64 arm64} {
     set merger_host(${my_arch}) ""
     if {[info exists my_targets(${my_arch})]} {
-        set merger_configure_args(${my_arch}) --force-target=$my_targets(${my_arch})-${os.platform}20-gcc
+        set merger_configure_args(${my_arch}) --force-target=$my_targets(${my_arch})-${os.platform}${os.major}-gcc
     }
 }
 if {![variant_isset universal]} {
