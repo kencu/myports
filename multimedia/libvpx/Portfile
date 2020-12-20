@@ -110,10 +110,11 @@ configure.universal_args-delete --disable-dependency-tracking
 
 set my_targets(i386)    x86
 set my_targets(x86_64)  x86_64
+set my_targets(arm)     arm
 
 # We must specify the target, otherwise the configure script will guess,
 # and that may not match what the user requested in macports.conf.
-foreach my_arch {i386 x86_64} {
+foreach my_arch {i386 x86_64 arm} {
     set merger_host(${my_arch}) ""
     if {[info exists my_targets(${my_arch})]} {
         set merger_configure_args(${my_arch}) --force-target=$my_targets(${my_arch})-${os.platform}-gcc
