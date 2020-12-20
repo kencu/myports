@@ -42,8 +42,7 @@ supported_archs     x86_64 i386 arm64
 
 depends_build-append port:yasm
 
-patchfiles          patch-build-make-configure.sh.diff \
-                    patch-Makefile.diff
+patchfiles           patch-Makefile.diff
 
 # clang 425.0.28 with libvpx-1.4.0:
 # vp9/common/x86/vp9_subpixel_8t_intrin_avx2.c:77:16: error: assigning to '__m256i' from incompatible type 'int'
