@@ -1,0 +1,36 @@
+# -*- coding: utf-8; mode: tcl; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- vim:fenc=utf-8:ft=tcl:et:sw=4:ts=4:sts=4
+
+PortSystem          1.0
+
+name                vice-emu-binary
+categories          binary emulators
+platforms           darwin
+license             GPL-2+
+maintainers         nomaintainer
+description         Versatile Commodore Emulator
+long_description    ${description}. This port installs the binary build from upstream \
+                    recommended for this version of MacOS.
+
+homepage            https://vice-emu.sourceforge.io
+universal_variant   no
+
+# 10.9 and up
+if { ${os.platform} eq "darwin" && ${os.major} > 12  } {
+
+#    supported_archs     x86_64 arm64
+    version             3.5
+    master_sites        sourceforge:vice-emu
+    distname            vice-gtk3-${version}
+    use_dmg             yes
+
+    checksums           rmd160  81c49e3c080e15c71fb55f71a5585e21d0c86b07 \
+                        sha256  5ebe6ac7ced8b97aff923158d3086f14a5cd800b5863e7be2f1d54ca68af3455 \
+                        size    63531920
+}
+
+use_configure       no
+build {}
+
+destroot {
+	copy ${worksrcpath}/vice-gtk3-${version} "${destroot}${applications_dir}"
+}

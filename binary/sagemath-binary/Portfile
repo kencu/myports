@@ -1,0 +1,49 @@
+# -*- coding: utf-8; mode: tcl; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- vim:fenc=utf-8:ft=tcl:et:sw=4:ts=4:sts=4
+
+PortSystem          1.0
+
+name                sagemath-binary
+categories          binary math
+platforms           darwin
+license             Permissive NoMirror
+maintainers         nomaintainer
+description         free open-source mathematics software system licensed under the GPL
+long_description    ${description}. This port installs the binary build from upstream \
+                    recommended for this version of MacOS.
+
+homepage            https://www.sagemath.org/index.html
+
+universal_variant   no
+archive_sites
+
+# https://www.sagemath.org/download-mac.html
+# not all have been listed here
+master_sites        http://www.cecm.sfu.ca/sage/osx/intel/ \
+                    http://mirrors.mit.edu/sage/osx/intel/ \
+                    https://mirror.marwan.ma/sage/osx/intel/ \
+                    http://ftp.sun.ac.za/ftp/pub/mirrors/www.sagemath.org/osx/intel/ \
+                    https://sagemath.mirror.ac.za/osx/intel/ \
+                    http://ftp.leg.uct.ac.za/pub/packages/sage/osx/intel/ \
+                    http://ftp.riken.jp/sagemath/osx/intel/ \
+                    https://mirrors.tuna.tsinghua.edu.cn/sagemath/osx/intel/ \
+                    http://mirror.aarnet.edu.au/pub/sage/osx/intel/ \
+                    https://mirror.dogado.de/sage/osx/intel/
+
+# 10.15 and up
+if { ${os.platform} eq "darwin" && ${os.major} >= 19  } {
+    supported_archs     x86_64 arm64
+    version             9.2
+    distname            sage-${version}-OSX_10.15.7-x86_64.app
+    use_dmg             yes
+    checksums           rmd160  398838206e0011ce20a346e78d5db5278e1b2dec \
+                        sha256  fa6eb93368d4f7c220cbdd7a1483c1ef9d9b718b0f179c17c2acf14fb74f10c1 \
+                        size    1986453988
+}
+
+use_configure       no
+build {}
+
+destroot {
+    copy ${worksrcpath}/SageMath-${version}.app ${destroot}${applications_dir}
+    xinstall -m 0640 ${worksrcpath}/README.txt ${destroot}${prefix}/share/${name}-${version}
+}

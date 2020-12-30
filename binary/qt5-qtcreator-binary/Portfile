@@ -1,0 +1,34 @@
+# -*- coding: utf-8; mode: tcl; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- vim:fenc=utf-8:ft=tcl:et:sw=4:ts=4:sts=4
+
+PortSystem          1.0
+
+name                qt5-qtcreator-binary
+categories          binary devel aqua
+platforms           darwin
+license             LGPL-2.1
+maintainers         nomaintainer
+description         Cross-platform integrated development environment (IDE) tailored to the needs of Qt developers.
+long_description    Qt Creator is a cross-platform integrated development environment (IDE) tailored to the needs of Qt developers.
+
+homepage            http://qt-project.org/wiki/Category:Tools::QtCreator
+universal_variant   no
+supported_archs     x86_64
+
+if { ${subport} eq ${name}  } {
+    version             3.6.1
+    use_dmg             yes
+    distname            qt-creator-opensource-mac-x86_64-3.6.1
+    master_sites        https://download.qt.io/archive/qtcreator/3.6/3.6.1/
+    checksums           rmd160  1b88e65d31d6d4b34d3e52fc53b3ec8f18d06a7c \
+                        sha256  0e4806e69105d141f767908694d0c59739fb55bfd01f5e72b83a6abad87203ae \
+                        size    75947145
+}
+
+use_configure       no
+build {}
+
+set qt_dir "/Qt5/"
+destroot {
+	xinstall -m 755 -d ${destroot}${applications_dir}${qt_dir}
+	copy ${worksrcpath}/Qt\ Creator.app "${destroot}${applications_dir}${qt_dir}"
+}
