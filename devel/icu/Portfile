@@ -1,0 +1,71 @@
+# -*- coding: utf-8; mode: tcl; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- vim:fenc=utf-8:filetype=tcl:et:sw=4:ts=4:sts=4
+
+PortSystem              1.0
+PortGroup               clang_dependency 1.0
+
+name                    icu
+categories              devel textproc
+platforms               darwin
+maintainers             {kencu @kencu} openmaintainer
+license                 Permissive
+description             International Components for Unicode
+long_description        {*}${description} (ICU) support libraries.
+
+homepage                http://site.icu-project.org/
+
+version                 67.1
+revision                3
+checksums               rmd160  c4a84ef7d2e18d6d1374b5ed6449227b94550e14 \
+                        sha256  94a80cd6f251a53bd2a997f6f1b5ac6653fe791dfab66e1eb0227740fb86d5dc \
+                        size    24518055
+
+master_sites            https://github.com/unicode-org/icu/releases/download/release-[string map {. -} ${version}]/
+distname                icu4c-[string map {. _} ${version}]-src
+extract.suffix          .tgz
+
+compiler.cxx_standard   2011
+
+# clear these, otherwise can collide with installed icu
+compiler.cpath
+compiler.library_path
+configure.cppflags-delete -I${prefix}/include
+configure.ldflags-delete  -L${prefix}/lib
+
+# use full path to libraries when building tools
+patchfiles-append       patch-config-mh-darwin.diff
+
+worksrcdir              ${name}/source
+
+configure.args          --disable-layoutex \
+                        --disable-samples  \
+                        --disable-tests    \
+                        --enable-static    \
+                        --with-library-bits=64
+
+build.args-append       VERBOSE=1
+
+variant tests description "enable tests" {
+    test.run                yes
+    configure.args-replace  --disable-tests --enable-tests
+    test.target             check
+    test.args-append        VERBOSE=1
+}
+
+# we will need to use muniversal PG to build fat libraries with different bit depths
+if {${configure.build_arch} in "i386 ppc"} {
+    configure.args-replace  --with-library-bits=64 --with-library-bits=32
+}
+
+if {${os.major} < 11} {
+    depends_build-append    port:python27
+    license_noconflict      python27
+    configure.python        ${prefix}/bin/python2.7
+}
+
+platform darwin 8 {
+    patchfiles-append   patch-common-putil.cpp.diff
+}
+
+livecheck.url       http://site.icu-project.org/download
+livecheck.regex     "ICU4C-Download\">(\[0-9.\]+)"
+
