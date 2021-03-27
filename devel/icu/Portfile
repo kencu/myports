@@ -4,70 +4,33 @@ PortSystem              1.0
 PortGroup               clang_dependency 1.0
 
 name                    icu
-subport                 icu58 {}
 categories              devel textproc
-platforms               darwin freebsd
+platforms               darwin
 maintainers             nomaintainer
 license                 Permissive
 description             International Components for Unicode
 long_description        {*}${description} (ICU) support libraries.
+
 homepage                http://site.icu-project.org/
 
-configure.python        /usr/bin/python
-
-# clear these so we don't find headers or libs in ${prefix}, can break builds
-configure.cppflags
-configure.ldflags
-
-if {${subport} eq "icu"} {
-    version                 68.2
-    revision                0
-    checksums               rmd160  596bd53b17bd85a872f0731679e2f1c664e3bae6 \
-                            sha256  c79193dee3907a2199b8296a93b52c5cb74332c26f3d167269487680d479d625 \
-                            size    24737478
-
-    compiler.cxx_standard   2011
-
-	# use full path to libraries when building tools
-	patchfiles-append       patch-config-mh-darwin.diff
-
-    platform darwin 8 {
-        patchfiles-append   patch-common-putil.cpp.diff
-    }
-
-	if {${os.major} < 11} {
-		depends_build-append    port:python27
-		license_noconflict      python27
-		configure.python        ${prefix}/bin/python2.7
-	}
-
-	livecheck.url       http://site.icu-project.org/download
-	livecheck.regex     "ICU4C-Download\">(\[0-9.\]+)"
-}
-
-# this older subport builds without c++11 and is used for bootstrapping
-if {${subport} eq "icu58"} {
-    version                 58.3
-    revision                1
-    checksums               rmd160  0b1ad8ea9bccd5d0f96a89bd0cdc12b5751ed46e \
-                            sha256  2680f3c547cd26cba1d7ebd819cd336ff92cf444a270e195fd3b10bfdf22276c \
-                            size    22626103
-
-    configure.pre_args      --prefix=${prefix}/libexec/${subport}
-
-    patchfiles-append       CVE-2017-7867-CVE-2017-7868.patch \
-                            patch-bootstrap_config-mh-darwin.diff
-
-    platform darwin 8 {
-        patchfiles-append   patch-bootstrap_common-putil.cpp.diff
-    }
-
-    livecheck.type          none
-}
+version                 68.2
+revision                0
+checksums               rmd160  596bd53b17bd85a872f0731679e2f1c664e3bae6 \
+						sha256  c79193dee3907a2199b8296a93b52c5cb74332c26f3d167269487680d479d625 \
+						size    24737478
 
 master_sites            https://github.com/unicode-org/icu/releases/download/release-[string map {. -} ${version}]/
 distname                icu4c-[string map {. _} ${version}]-src
 extract.suffix          .tgz
+
+compiler.cxx_standard   2011
+
+# clear these
+configure.cppflags
+configure.ldflags
+
+# use full path to libraries when building tools
+patchfiles-append       patch-config-mh-darwin.diff
 
 worksrcdir              ${name}/source
 
@@ -78,11 +41,23 @@ configure.args          --disable-layoutex \
 
 build.args-append       VERBOSE=1
 
-test.run                yes
-test.target             check
-test.args-append        VERBOSE=1
 variant tests description "enable tests" {
+    test.run                yes
     configure.args-replace --disable-tests --enable-tests 
+    test.target             check
+    test.args-append        VERBOSE=1
 }
 
+platform darwin 8 {
+	patchfiles-append   patch-common-putil.cpp.diff
+}
+
+if {${os.major} < 11} {
+	depends_build-append    port:python27
+	license_noconflict      python27
+	configure.python        ${prefix}/bin/python2.7
+}
+
+livecheck.url       http://site.icu-project.org/download
+livecheck.regex     "ICU4C-Download\">(\[0-9.\]+)"
 
