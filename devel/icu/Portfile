@@ -3,10 +3,10 @@
 PortSystem              1.0
 PortGroup               clang_dependency 1.0
 
-if {${os.major} < 18} {
+if {${os.platform} eq "darwin" && ${os.major} < 18} {
     # prior to 10.14, universal usually means different library bit depths
-    # if different library bit depths are required, then we
     # have to build separately and lipo together
+    set using_muniveral_PG true
     PortGroup muniversal 1.0
 
 }
@@ -24,8 +24,8 @@ homepage                http://site.icu-project.org/
 version                 68.2
 revision                0
 checksums               rmd160  596bd53b17bd85a872f0731679e2f1c664e3bae6 \
-			sha256  c79193dee3907a2199b8296a93b52c5cb74332c26f3d167269487680d479d625 \
-			size    24737478
+                        sha256  c79193dee3907a2199b8296a93b52c5cb74332c26f3d167269487680d479d625 \
+                        size    24737478
 
 compiler.cxx_standard   2011
 
@@ -45,12 +45,7 @@ worksrcdir              ${name}/source
 configure.args          --disable-layoutex \
                         --disable-samples  \
                         --disable-tests    \
-                        --enable-static    \
-			--with-library-bits=64
-
-if {${configure.build_arch} in "i386 ppc"} {
-    configure.args-replace --with-library-bits=64 --with-library-bits=32
-}
+                        --enable-static
 
 build.args-append       VERBOSE=1
 
@@ -61,14 +56,74 @@ variant tests description "enable tests" {
     test.args-append        VERBOSE=1
 }
 
+# handle a multi-bit-depth build of libraries, using muniversal PG
+if {![info exists universal_possible]} {
+    set universal_possible [expr {${os.universal_supported} && [llength ${configure.universal_archs}] >= 2}]
+}
+
+if {${universal_possible} && [variant_isset universal] && ${using_muniveral_PG}} {
+    lappend merger_configure_args(i386)   --with-library-bits=32
+    lappend merger_configure_args(ppc)    --with-library-bits=32
+    lappend merger_configure_args(x86_64) --with-library-bits=64
+    lappend merger_configure_args(ppc64)  --with-library-bits=64
+    lappend merger_configure_args(arm64)  --with-library-bits=64
+
+    post-build {
+        set dirs {}
+        foreach arch ${universal_archs_to_use} {
+            lappend dirs ${worksrcpath}-${arch}
+        }
+        foreach dir ${dirs} {
+            # Remove architecture-specific flags to facilitate merging.
+            reinplace {s| -DSIZEOF_VOID_P=[48]||g}            ${dir}/config/Makefile.inc \
+                                                              ${dir}/config/icu-config
+            reinplace -E {s| -arch +[^ ]+||g}                 ${dir}/config/pkgdata.inc
+
+            reinplace {s|host=\".*\"|host=\"\"|g}             ${dir}/config/icu-config
+            reinplace {s|host_alias=\".*\"|host_alias=\"\"|g} ${dir}/config/icu-config
+            reinplace {s|host_cpu=\".*\"|host_cpu=\"\"|g}     ${dir}/config/icu-config
+        }
+    }
+
+} else {
+    # not using muniversal PG
+    if {${configure.build_arch} in "i386 ppc"} {
+        configure.args-append --with-library-bits=32
+    } elseif {${configure.build_arch} in "x86_64 ppc64 arm64"} {
+        configure.args-append --with-library-bits=64
+    }
+}
+
 if {${os.major} < 11} {
-	depends_build-append    port:python27
-	license_noconflict      python27
-	configure.python        ${prefix}/bin/python2.7
+    depends_build-append    port:python27
+    license_noconflict      python27
+    configure.python        ${prefix}/bin/python2.7
 }
 
 platform darwin 8 {
-	patchfiles-append   patch-common-putil.cpp.diff
+    patchfiles-append   patch-common-putil.cpp.diff
+}
+
+subport ${name}-docs {
+    revision                0
+    conflicts               ${name}-doxygen-docs
+    supported_archs         noarch
+    description-append      (documentation)
+    long_description-append Documentation.
+    use_zip                 yes
+    patchfiles
+    distname                icu4c-[string map {. _} ${version}]-docs
+    checksums               rmd160  196fcce48b71638af97eef0554d96d20f6fdbe4c \
+                            sha256  703a4204c7683d8dad4320cfbbb6209ae6fc7bd8c4f9b0dc36394711067e89d2 \
+                            size    8075068
+    extract.dir             ${worksrcpath}/doc/html
+    use_configure           no
+    build {}
+    destroot {
+        set docdir      ${prefix}/share/doc/${name}
+        xinstall -m 755 -d ${destroot}${docdir}
+        copy ${worksrcpath}/doc/html ${destroot}${docdir}
+    }
 }
 
 livecheck.url       http://site.icu-project.org/download
