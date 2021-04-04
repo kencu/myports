@@ -88,7 +88,7 @@ if {${universal_possible} && [variant_isset universal] && ${using_muniveral_PG}}
     }
 
 } else {
-    # not using muniversal PG
+    # not using muniversal PG, append args in the normal way
     if {${configure.build_arch} in "i386 ppc"} {
         configure.args-append --with-library-bits=32
     } elseif {${configure.build_arch} in "x86_64 ppc64 arm64"} {
@@ -126,6 +126,20 @@ subport ${name}-docs {
         xinstall -m 755 -d ${destroot}${docdir}
         copy ${worksrcpath}/doc/html ${destroot}${docdir}
     }
+}
+
+subport icu-lx {
+    # delete after 20220403
+    PortGroup obsolete 1.0
+
+    replaced_by harfbuzz
+}
+
+subport icu-doxygen-docs {
+    # delete after 20220403
+    PortGroup obsolete 1.0
+
+    replaced_by icu-docs
 }
 
 livecheck.url       http://site.icu-project.org/download
