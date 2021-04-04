@@ -108,7 +108,6 @@ platform darwin 8 {
 
 subport ${name}-docs {
     revision                0
-    conflicts               ${name}-doxygen-docs
     supported_archs         noarch
     description-append      (documentation)
     long_description-append Documentation.
