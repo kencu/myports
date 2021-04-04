@@ -4,6 +4,7 @@ PortSystem              1.0
 PortGroup               clang_dependency 1.0
 
 if {${os.major} < 18} {
+    # prior to 10.14, universal usually means different library bit depths
     # if different library bit depths are required, then we
     # have to build separately and lipo together
     PortGroup muniversal 1.0
@@ -13,58 +14,27 @@ if {${os.major} < 18} {
 name                    icu
 categories              devel textproc
 platforms               darwin
-maintainers             nomaintainer
+maintainers             {kencu @kencu} openmaintainer
 license                 Permissive
 description             International Components for Unicode
 long_description        {*}${description} (ICU) support libraries.
 
 homepage                http://site.icu-project.org/
 
-subport icu {
-	version                 68.2
-	revision                0
-	checksums               rmd160  596bd53b17bd85a872f0731679e2f1c664e3bae6 \
-							sha256  c79193dee3907a2199b8296a93b52c5cb74332c26f3d167269487680d479d625 \
-							size    24737478
-	compiler.cxx_standard   2011
+version                 68.2
+revision                0
+checksums               rmd160  596bd53b17bd85a872f0731679e2f1c664e3bae6 \
+			sha256  c79193dee3907a2199b8296a93b52c5cb74332c26f3d167269487680d479d625 \
+			size    24737478
 
-    # use full path to libraries when building tools
-    patchfiles-append       patch-config-mh-darwin.diff
-	platform darwin 8 {
-		patchfiles-append   patch-common-putil.cpp.diff
-	}
-
-	if {${os.major} < 11} {
-		depends_build-append    port:python27
-		license_noconflict      python27
-		configure.python        ${prefix}/bin/python2.7
-	}
-
-	livecheck.url       http://site.icu-project.org/download
-	livecheck.regex     "ICU4C-Download\">(\[0-9.\]+)"
-
-}
-
-subport icu58 {
-    version                 58.3
-    revision                1
-    checksums               rmd160  0b1ad8ea9bccd5d0f96a89bd0cdc12b5751ed46e \
-                            sha256  2680f3c547cd26cba1d7ebd819cd336ff92cf444a270e195fd3b10bfdf22276c \
-                            size    22626103
-
-    configure.pre_args      --prefix=${prefix}/libexec/icu58
-    configure.python        /usr/bin/python
-    patchfiles-append       CVE-2017-7867-CVE-2017-7868.patch \
-                            patch-bootstrap_config-mh-darwin.diff
-	platform darwin 8 {
-		patchfiles-append   patch-bootstrap_common-putil.cpp.diff
-	}
-	livecheck.type          none
-}
+compiler.cxx_standard   2011
 
 master_sites            https://github.com/unicode-org/icu/releases/download/release-[string map {. -} ${version}]/
 distname                icu4c-[string map {. _} ${version}]-src
 extract.suffix          .tgz
+
+# use full path to libraries when building tools
+patchfiles-append       patch-config-mh-darwin.diff
 
 # clear these
 configure.cppflags
@@ -75,21 +45,14 @@ worksrcdir              ${name}/source
 configure.args          --disable-layoutex \
                         --disable-samples  \
                         --disable-tests    \
-                        --enable-static
+                        --enable-static    \
+			--with-library-bits=64
 
-if {${configure.build_arch} in "x86_64 arm64 ppc64"} {
-    configure.args-append --with-library-bits=64
-} elseif {${configure.build_arch} in "i386 ppc"} {
-    configure.args-append --with-library-bits=32
+if {${configure.build_arch} in "i386 ppc"} {
+    configure.args-replace --with-library-bits=64 --with-library-bits=32
 }
 
 build.args-append       VERBOSE=1
-
-variant docs description "install documentation" {
-    depends_build-append    port:doxygen
-    build.target-append     doc
-    destroot.target-append  install-doc
-}
 
 variant tests description "enable tests" {
     test.run                yes
@@ -98,22 +61,15 @@ variant tests description "enable tests" {
     test.args-append        VERBOSE=1
 }
 
-
-# remove these after 20220331
-subport icu-doxygen-docs {
-    PortGroup obsolete 1.0
-
-    replaced_by icu
+if {${os.major} < 11} {
+	depends_build-append    port:python27
+	license_noconflict      python27
+	configure.python        ${prefix}/bin/python2.7
 }
 
-subport icu-docs {
-    PortGroup obsolete 1.0
-
-    replaced_by icu
+platform darwin 8 {
+	patchfiles-append   patch-common-putil.cpp.diff
 }
 
-subport icu-lx {
-    PortGroup obsolete 1.0
-
-    replaced_by harfbuzz
-}
+livecheck.url       http://site.icu-project.org/download
+livecheck.regex     "ICU4C-Download\">(\[0-9.\]+)"
