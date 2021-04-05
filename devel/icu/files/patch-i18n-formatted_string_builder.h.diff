@@ -1,6 +1,6 @@
 --- i18n/formatted_string_builder.h.orig	2020-04-22 13:04:20.000000000 -0700
 +++ i18n/formatted_string_builder.h	2020-08-02 15:55:24.296030000 -0700
-@@ -224,8 +224,6 @@
+@@ -223,8 +223,6 @@
  
  constexpr FormattedStringBuilder::Field::Field(uint8_t category, uint8_t field)
      : bits((

@@ -41,6 +41,11 @@ extract.suffix          .tgz
 # use full path to libraries when building tools
 patchfiles-append       patch-config-mh-darwin.diff
 
+patchfiles-append patch-declspec-conflict.patch
+# https://trac.macports.org/ticket/60325
+
+patchfiles-append patch-i18n-formatted_string_builder.h.diff
+
 # clear these, otherwise can collide with installed icu
 compiler.cpath
 compiler.library_path
