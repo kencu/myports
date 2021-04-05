@@ -27,15 +27,15 @@ if {${os.platform} eq "darwin" && ${os.major} >= 18} {
 version                 58.3
 revision                1
 checksums               rmd160  0b1ad8ea9bccd5d0f96a89bd0cdc12b5751ed46e \
-						sha256  2680f3c547cd26cba1d7ebd819cd336ff92cf444a270e195fd3b10bfdf22276c \
-						size    22626103
+                        sha256  2680f3c547cd26cba1d7ebd819cd336ff92cf444a270e195fd3b10bfdf22276c \
+                        size    22626103
 
 master_sites            https://github.com/unicode-org/icu/releases/download/release-[string map {. -} ${version}]/
 distname                icu4c-[string map {. _} ${version}]-src
 extract.suffix          .tgz
 
 patchfiles-append       CVE-2017-7867-CVE-2017-7868.patch \
-						patch-bootstrap_config-mh-darwin.diff
+                        patch-bootstrap_config-mh-darwin.diff
 
 # Fix bug #11981 that prevents ICU from building when upgrading.
 # The default configure flags causes utilisation of outdated ICU
@@ -63,24 +63,24 @@ configure.universal_args-delete --disable-dependency-tracking
 merger_must_run_binaries yes
 
 post-build {
-	if {[variant_exists universal] && [variant_isset universal]} {
-		set dirs {}
-		foreach arch ${universal_archs_to_use} {
-			lappend dirs ${worksrcpath}-${arch}
-		}
-	} else {
-		set dirs ${worksrcpath}
-	}
-	foreach dir ${dirs} {
-		# Remove architecture-specific flags to facilitate merging.
-		reinplace {s| -DSIZEOF_VOID_P=[48]||g}            ${dir}/config/Makefile.inc \
-														  ${dir}/config/icu-config
-		reinplace -E {s| -arch +[^ ]+||g}                 ${dir}/config/pkgdata.inc
+    if {[variant_exists universal] && [variant_isset universal]} {
+        set dirs {}
+        foreach arch ${universal_archs_to_use} {
+            lappend dirs ${worksrcpath}-${arch}
+        }
+    } else {
+        set dirs ${worksrcpath}
+    }
+    foreach dir ${dirs} {
+        # Remove architecture-specific flags to facilitate merging.
+        reinplace {s| -DSIZEOF_VOID_P=[48]||g}            ${dir}/config/Makefile.inc \
+                                                          ${dir}/config/icu-config
+        reinplace -E {s| -arch +[^ ]+||g}                 ${dir}/config/pkgdata.inc
 
-		reinplace {s|host=\".*\"|host=\"\"|g}             ${dir}/config/icu-config
-		reinplace {s|host_alias=\".*\"|host_alias=\"\"|g} ${dir}/config/icu-config
-		reinplace {s|host_cpu=\".*\"|host_cpu=\"\"|g}     ${dir}/config/icu-config
-	}
+        reinplace {s|host=\".*\"|host=\"\"|g}             ${dir}/config/icu-config
+        reinplace {s|host_alias=\".*\"|host_alias=\"\"|g} ${dir}/config/icu-config
+        reinplace {s|host_cpu=\".*\"|host_cpu=\"\"|g}     ${dir}/config/icu-config
+    }
 }
 
 build.type      gnu
@@ -95,10 +95,10 @@ platform darwin 8 {
 }
 
 if {${build_arch} eq "ppc" || ${build_arch} eq "ppc64"} {
-	# see https://trac.macports.org/ticket/59514
-	post-extract {
-		xinstall -d -m 0755 ${worksrcpath}/data/out
-	}
+    # see https://trac.macports.org/ticket/59514
+    post-extract {
+        xinstall -d -m 0755 ${worksrcpath}/data/out
+    }
 }
 
 livecheck.type      none
