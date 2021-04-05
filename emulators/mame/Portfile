@@ -1,16 +1,22 @@
 # -*- coding: utf-8; mode: tcl; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- vim:fenc=utf-8:ft=tcl:et:sw=4:ts=4:sts=4
 
 PortSystem          1.0
+PortGroup           compiler_blacklist_versions 1.0
 PortGroup github    1.0
-PortGroup cxx11     1.1
 
-github.setup        mamedev mame mame0201
-version             0.202
+github.setup        mamedev mame 0226 mame
+revision            0
+checksums           rmd160  b9e4ae321b7673790d374c63bbe966d1502d6738 \
+                    sha256  7c4c9ec232ba988e65fd29665c9b8e40b5ac3aa9f561eeb107cebbf08ba94baf \
+                    size    196379874
+
+version             [string index ${github.version} 0].[string range ${github.version} 1 end]
 categories          emulators
 maintainers         nomaintainer
 platforms           darwin
 license             GPL-2+
-homepage            http://mamedev.org/index.php
+homepage            https://www.mamedev.org
+github.tarball_from archive
 
 description         Multiple Arcade Machine Emulator
 long_description    The purpose of MAME is to preserve decades of software history. As \
@@ -19,19 +25,18 @@ long_description    The purpose of MAME is to preserve decades of software histo
     the hardware and how it functions. The source code to MAME serves as this \
     documentation.
 
-checksums           rmd160  70ddfcc7a182ddb658fc850def395434e1338bcc \
-                    sha256  0563c9be8d40bae0e00fb47df818bb9fa122fdcbf85fa0dec268c449cb1a766f \
-                    size    130837611
-
 # Fix true vs. TRUE issue with jpeg port
-patchfiles          patch-rendutil.cpp.diff
+# patchfiles          patch-rendutil.cpp.diff
 
 # remove -Wundef which causes errors on older mac systems
-patchfiles-append   patch-genie-no-undef.diff
+# patchfiles-append   patch-genie-no-undef.diff
 
 depends_build-append \
-                    port:python36 \
-                    port:py36-sphinx \
+                    port:asio \
+                    port:pkgconfig \
+                    port:python38 \
+                    port:py38-sphinx \
+                    port:py38-sphinxcontrib-svg2pdfconverter \
                     port:latexmk \
                     port:texlive-latex-recommended \
                     port:texlive-fonts-recommended \
@@ -47,34 +52,55 @@ depends_lib-append  \
                     port:lua \
                     port:portaudio \
                     port:portmidi \
+                    port:pugixml \
                     port:sqlite3 \
                     port:zlib
 
 use_configure       no
 
-build.args-append   CC=${configure.cc} \
-                    CXX=${configure.cxx} \
-                    OVERRIDE_CC=${configure.cc} \
-                    OVERRIDE_CXX=${configure.cxx} \
+patchfiles-append   brazilian_portuguese_translation_errors.diff
+
+# https://github.com/mamedev/mame/issues/6004
+compiler.blacklist  {clang < 1000}
+
+compiler.cxx_standard   2014
+
+build.args-append   ARCHOPTS="${configure.cxxflags}" \
+                    CC="${configure.cc}" \
+                    CXX="${configure.cxx}" \
+                    LDOPTS="-L${prefix}/lib -lSDL2" \
+                    NOWERROR=1 \
                     USE_LIBSDL=1 \
+                    USE_SYSTEM_LIB_ASIO=1 \
                     USE_SYSTEM_LIB_EXPAT=1 \
                     USE_SYSTEM_LIB_FLAC=1 \
                     USE_SYSTEM_LIB_JPEG=1 \
                     USE_SYSTEM_LIB_LUA=1 \
                     USE_SYSTEM_LIB_PORTAUDIO=1 \
                     USE_SYSTEM_LIB_PORTMIDI=1 \
+                    USE_SYSTEM_LIB_PUGIXML=1 \
                     USE_SYSTEM_LIB_SQLITE3=1 \
                     USE_SYSTEM_LIB_UTF8PROC=1 \
                     USE_SYSTEM_LIB_ZLIB=1 \
-                    PYTHON_EXECUTABLE=${prefix}/bin/python3.6 \
-                    PTR64=1 \
-                    ARCHOPTS=-stdlib=${configure.cxx_stdlib} \
-                    ARCHOPTS=-DMAME_DEVCB_GNUC_BROKEN_FRIEND
+                    VERBOSE=1
+
+if {$build_arch in [list arm64 x86_64 ppc64]} {
+    build.args-append   PTR64=1
+    set executable  mame64
+} else {
+    build.args-append   PTR64=0
+    set executable  mame
+}
+
+build.args-append   PYTHON_EXECUTABLE=${prefix}/bin/python3.8
+#                    OVERRIDE_CC=${configure.cc} \
+#                    OVERRIDE_CXX=${configure.cxx} \
+
 
 destroot {
     # Create the target directory
     xinstall -m 755 -d ${destroot}${prefix}/libexec/mame
-	copy ${worksrcpath}/mame64 ${destroot}${prefix}/libexec/mame
+	copy ${worksrcpath}/${executable} ${destroot}${prefix}/libexec/mame
 
     copy ${worksrcpath}/artwork ${destroot}${prefix}/libexec/mame
     copy ${worksrcpath}/bgfx ${destroot}${prefix}/libexec/mame
@@ -91,7 +117,7 @@ destroot {
     xinstall -m 755 -d ${destroot}${prefix}/libexec/mame/snap
     xinstall -m 755 -d ${destroot}${prefix}/libexec/mame/sta
 
-    system -W ${worksrcpath}/docs "SPHINXBUILD=${prefix}/bin/sphinx-build-3.6 \
+    system -W ${worksrcpath}/docs "SPHINXBUILD=${prefix}/bin/sphinx-build-3.8 \
                                   BUILDDIR=${destroot}${prefix}/share/mame make -e site"
                                   
     xinstall -m 755 -d ${destroot}${prefix}/share/mame/html/_files
@@ -102,7 +128,7 @@ destroot {
     delete ${destroot}${prefix}/share/mame/latex
     delete ${destroot}${prefix}/share/mame/epub
 
-    system -W ${worksrcpath}/docs "SPHINXBUILD=${prefix}/bin/sphinx-build-3.6 \
+    system -W ${worksrcpath}/docs "SPHINXBUILD=${prefix}/bin/sphinx-build-3.8 \
                                   BUILDDIR=${destroot}${prefix}/share/temp make -e man"
 
     move ${destroot}${prefix}/share/temp/man/MAME.1 ${destroot}${prefix}/share/man/man6/mame.6
@@ -110,6 +136,6 @@ destroot {
 }
 
 post-destroot {
-    ln -s ${prefix}/libexec/mame/mame64 ${destroot}${prefix}/bin/mame
+    ln -s ${prefix}/libexec/mame/${executable} ${destroot}${prefix}/bin/mame
     reinplace "s|/_files|_files|g" ${destroot}${prefix}/share/mame/html/index.html
 }

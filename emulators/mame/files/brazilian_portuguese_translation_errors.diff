@@ -1,0 +1,43 @@
+From 28fc639fea7b8fa342817097b1097ad7e74c7707 Mon Sep 17 00:00:00 2001
+From: Masc Guy <mascguy@github.com>
+Date: Sun, 22 Nov 2020 16:44:13 -0500
+Subject: [PATCH] Fixed Portuguese_Brazil translation errors noted in issue
+ 7510
+
+---
+ language/Portuguese_Brazil/strings.po | 10 +++++-----
+ 1 file changed, 5 insertions(+), 5 deletions(-)
+
+diff --git language/Portuguese_Brazil/strings.po language/Portuguese_Brazil/strings.po
+index c7c1f0bc8d0..b47266370e3 100644
+--- language/Portuguese_Brazil/strings.po
++++ language/Portuguese_Brazil/strings.po
+@@ -1690,7 +1690,7 @@ msgstr "Cab. Mag.\tNão Implementado\n"
+ 
+ #: src/frontend/mame/ui/selgame.cpp:1136
+ msgid "Mag. Drum\tImperfect\n"
+-msgstr "Cab. Mag.\Imperfeito\n"
++msgstr "Cab. Mag.\tImperfeito\n"
+ 
+ #: src/frontend/mame/ui/selgame.cpp:1139
+ msgid "(EP)ROM\tUnimplemented\n"
+@@ -3020,15 +3020,15 @@ msgstr "Testar/Escrever o Valor do Poke"
+ msgid ""
+ "Use this if you want to poke the Slot 1 value (eg. You started with "
+ "something but lost it)"
+-msgstr "Use isto se quiser fazer um poke o Slot 1 (Quando você
+-começa com algo mas o perde)"
++msgstr "Use isto se quiser fazer um poke o Slot 1 (Quando você "
++"começa com algo mas o perde)"
+ 
+ #: plugins/cheatfind/init.lua:740
+ msgid ""
+ "Use this if you want to poke the Last Slot value (eg. You started without an "
+ "item but finally got it)"
+-msgstr "Use isto se quiser fazer um poke com o valor do Último Slot (Quando você começa
+-sem um item e depois você o consegue por exemplo)"
++msgstr "Use isto se quiser fazer um poke com o valor do Último Slot (Quando você começa "
++"sem um item e depois você o consegue por exemplo)"
+ 
+ #: plugins/cheatfind/init.lua:742
+ msgid "Use this if you want to poke 0x00"
