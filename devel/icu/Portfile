@@ -21,6 +21,11 @@ long_description        {*}${description} (ICU) support libraries.
 
 homepage                http://site.icu-project.org/
 
+# Don't forget to increase the revision number of the dependents (e.g. boost)
+# whenever the library version number changes. Thanks.
+# To find dependencies, use:
+# port file all | sort -u | xargs grep -El ':icu( |$)' | rev | cut -d / -f 2 | rev | sort -u
+
 version                 68.2
 revision                0
 checksums               rmd160  596bd53b17bd85a872f0731679e2f1c664e3bae6 \
@@ -43,6 +48,8 @@ configure.cppflags-delete -I${prefix}/include
 configure.ldflags-delete  -L${prefix}/lib
 
 worksrcdir              ${name}/source
+
+configure.python        /usr/bin/python
 
 configure.args          --disable-layoutex \
                         --disable-samples  \
