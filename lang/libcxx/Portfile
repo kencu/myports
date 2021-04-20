@@ -1,0 +1,84 @@
+# -*- coding: utf-8; mode: tcl; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- vim:fenc=utf-8:ft=tcl:et:sw=4:ts=4:sts=4
+
+PortSystem              1.0
+PortGroup               cmake 1.1
+
+name                    libcxx
+version                 7.1.0
+revision                0
+categories              lang
+platforms               darwin
+maintainers             {kencu @kencu} {jeremyhu @jeremyhu} openmaintainer
+
+license                 NCSA
+description             ${name}
+long_description        ${description}
+
+homepage                https://libcxx.llvm.org
+
+set llvm_version        ${version}
+master_sites            https://github.com/llvm/llvm-project/archive/
+distfiles               llvmorg-${llvm_version}.tar.gz
+checksums               llvmorg-${llvm_version}.tar.gz \
+                        rmd160  abdbeaa08cb1c5e9ce4008e47263eb10597f5aed \
+                        sha256  71c93979f20e01f1a1cc839a247945f556fa5e63abf2084e8468b238080fd839 \
+                        size    105306132
+
+platform darwin {
+    # pick a suitable python to build with
+    if {${os.major} < 11} {
+        # system python is too old, use python27-bootstrap to minimize dependencies
+        depends_build-append    port:python27-bootstrap
+        configure.args-append   -DPYTHON_EXECUTABLE=${prefix}/libexec/libcxx-bootstrap/bin/python2.7
+        depends_skip_archcheck-append python27-bootstrap
+    } else {
+        # use the system python, which is known to be fine for darwin 11 to 19
+        configure.args-append   -DPYTHON_EXECUTABLE=/usr/bin/python2.7
+    }
+}
+
+# remove need for port:libxml2 dependency
+configure.args-append -DLIBXML2_LIBRARIES=IGNORE
+
+compiler.cxx_standard   2011
+configure.pre_args-replace -DCMAKE_BUILD_TYPE=MacPorts -DCMAKE_BUILD_TYPE=Release
+
+# gcc5 errors building this
+compiler.blacklist-append macports-gcc-5
+# clang-3.4 had codegen issues building any llvm > 3.7
+compiler.blacklist-append macports-clang-3.4
+
+if {[string match macports-clang-* ${configure.compiler}]} {
+    depends_build-append port:cctools
+    depends_skip_archcheck-append cctools
+    configure.args-append   -DCMAKE_LIBTOOL=${prefix}/bin/libtool
+}
+
+# use cmake-bootstrap to minimize dependencies.
+depends_build-replace  path:bin/cmake:cmake port:cmake-bootstrap
+configure.cmd          ${prefix}/libexec/cmake-bootstrap/bin/cmake
+depends_skip_archcheck-append cmake-bootstrap
+
+if {${os.platform} eq "darwin" && ${os.major} < 11} {
+    # Proxy for eliminating the dependency on native TLS
+    # http://trac.macports.org/ticket/46887
+    # configure.args-append -DLLVM_ENABLE_BACKTRACES=OFF
+    # https://llvm.org/bugs/show_bug.cgi?id=25680
+    # configure.cxxflags-append -U__STRICT_ANSI__
+}
+
+configure.post_args      ${worksrcpath}/llvm
+
+configure.args-append    -DLLVM_TARGETS_TO_BUILD="X86"
+configure.args-append    -DLLVM_ENABLE_PROJECTS=\"clang\"
+configure.args-append    -DLLVM_ENABLE_RUNTIMES=\"libcxx\;libcxxabi\"
+
+destroot.target          install-cxx install-cxxabi
+
+variant tests description {Enable building of test code} {
+    test.run                yes
+    configure.args-append   -DLLVM_INCLUDE_TESTS=ON
+    test.target             check-cxx check-cxxabi
+}
+
+livecheck.type          none
