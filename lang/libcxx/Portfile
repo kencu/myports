@@ -2,6 +2,11 @@
 
 PortSystem              1.0
 PortGroup               cmake 1.1
+PortGroup legacysupport 1.0
+
+# link legacysupport statically for compilers
+legacysupport.use_static yes
+legacysupport.newest_darwin_requires_legacy 10
 
 name                    libcxx
 version                 7.1.0
@@ -23,6 +28,8 @@ checksums               llvmorg-${llvm_version}.tar.gz \
                         rmd160  abdbeaa08cb1c5e9ce4008e47263eb10597f5aed \
                         sha256  71c93979f20e01f1a1cc839a247945f556fa5e63abf2084e8468b238080fd839 \
                         size    105306132
+
+patchfiles-append       5005-MacPorts-only-patch-libcxx-includes-disable-availability-tests.diff
 
 platform darwin {
     # pick a suitable python to build with
@@ -46,12 +53,13 @@ configure.pre_args-replace -DCMAKE_BUILD_TYPE=MacPorts -DCMAKE_BUILD_TYPE=Releas
 # gcc5 errors building this
 compiler.blacklist-append macports-gcc-5
 # clang-3.4 had codegen issues building any llvm > 3.7
-compiler.blacklist-append macports-clang-3.4
+#compiler.blacklist-append macports-clang-3.4
 
-if {[string match macports-clang-* ${configure.compiler}]} {
-    depends_build-append port:cctools
-    depends_skip_archcheck-append cctools
-    configure.args-append   -DCMAKE_LIBTOOL=${prefix}/bin/libtool
+platform darwin {
+    if {${os.major} < 11} {
+        configure.cxx_stdlib
+        compiler.blacklist-append macports-clang-* clang
+    }
 }
 
 # use cmake-bootstrap to minimize dependencies.
@@ -59,19 +67,15 @@ depends_build-replace  path:bin/cmake:cmake port:cmake-bootstrap
 configure.cmd          ${prefix}/libexec/cmake-bootstrap/bin/cmake
 depends_skip_archcheck-append cmake-bootstrap
 
-if {${os.platform} eq "darwin" && ${os.major} < 11} {
-    # Proxy for eliminating the dependency on native TLS
-    # http://trac.macports.org/ticket/46887
-    # configure.args-append -DLLVM_ENABLE_BACKTRACES=OFF
-    # https://llvm.org/bugs/show_bug.cgi?id=25680
-    # configure.cxxflags-append -U__STRICT_ANSI__
-}
-
 configure.post_args      ${worksrcpath}/llvm
 
 configure.args-append    -DLLVM_TARGETS_TO_BUILD="X86"
 configure.args-append    -DLLVM_ENABLE_PROJECTS=\"clang\"
 configure.args-append    -DLLVM_ENABLE_RUNTIMES=\"libcxx\;libcxxabi\"
+
+# this works, BTW
+#configure.args-append    -DLLVM_ENABLE_PROJECTS=\"clang\;libcxx\;libcxxabi\"
+
 
 destroot.target          install-cxx install-cxxabi
 
