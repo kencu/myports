@@ -1,0 +1,245 @@
+# -*- coding: utf-8; mode: tcl; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- vim:fenc=utf-8:ft=tcl:et:sw=4:ts=4:sts=4
+PortSystem              1.0
+PortGroup               cmake 1.1
+PortGroup               active_variants 1.1
+PortGroup               compiler_blacklist_versions 1.0
+
+#cmake.generator         Ninja
+
+set llvm_version        12
+version                 12.0.0
+checksums               rmd160  45195ef283fca87efdd7dbfbf27a689722897fe6 \
+                        sha256  9ed1688943a4402d7c904cc4515798cdb20080066efa010fe7e1f2551b423628 \
+                        size    90884060
+
+master_sites            https://github.com/llvm/llvm-project/releases/download/llvmorg-${version}/
+distname                llvm-project-${version}.src
+use_xz                  yes
+
+name                    llvm-${llvm_version}
+revision                0
+subport                 clang-${llvm_version} {revision 0}
+subport                 lldb-${llvm_version}  {revision 0}
+dist_subdir             llvm
+set suffix              mp-${llvm_version}
+set sub_prefix          ${prefix}/libexec/llvm-${llvm_version}
+cmake.install_prefix    ${sub_prefix}
+
+categories              lang
+platforms               darwin
+maintainers             {jeremyhu @jeremyhu} {kencu @kencu} openmaintainer
+
+license                 NCSA
+description             ${name}
+long_description        ${description}
+
+homepage                http://llvm.org
+
+pre-patch {
+    # do this pre-patch so github portgroup doesn't complain
+#    move ${workpath}/llvm-project-${version} ${workpath}/llvm-project
+#    patchdir            ${worksrcdir}
+    worksrcdir          ${worksrcdir}/llvm
+}
+
+# hand-tweaked, approximately c++ standard 2014
+compiler.blacklist *gcc* {clang < 801} macports-clang-3.*
+compiler.fallback   clang macports-clang-9.0
+
+# delete the cmake PG's default rpath settings. See (1).
+configure.args-delete \
+    -DCMAKE_INSTALL_NAME_DIR=${cmake.install_prefix}/lib \
+    -DCMAKE_INSTALL_RPATH="${prefix}/lib\;${cmake.install_prefix}/lib"
+
+configure.args-replace \
+    -DCMAKE_SYSTEM_PREFIX_PATH="${prefix}\;/usr" \
+    -DCMAKE_SYSTEM_PREFIX_PATH="${cmake.install_prefix}\;${prefix}\;/usr"
+
+configure.args-replace \
+    -DCMAKE_BUILD_WITH_INSTALL_RPATH:BOOL=ON \
+    -DCMAKE_BUILD_WITH_INSTALL_RPATH:BOOL=OFF
+
+configure.args-append   \
+    -DLLVM_ENABLE_FFI=ON \
+    -DFFI_INCLUDE_DIR=${prefix}/include \
+    -DFFI_LIBRARY_DIR=${prefix}/lib
+
+configure.pre_args-replace \
+    -DCMAKE_BUILD_TYPE=MacPorts -DCMAKE_BUILD_TYPE=RelWithDebInfo
+
+configure.args-append   -DLLVM_ENABLE_ASSERTIONS=OFF
+
+if {${subport} eq "llvm-${llvm_version}"} {
+
+    homepage            https://llvm.org/
+    description         llvm is a next generation compiler infrastructure
+    long_description    The LLVM Core libraries provide a modern source- and \
+                        target-independent optimizer, along with code \
+                        generation support for many popular CPUs (as well as \
+                        some less common ones!) These libraries are built \
+                        around a well specified code representation known as \
+                        the LLVM intermediate representation ("LLVM IR").
+
+    depends_lib         port:libedit port:libffi port:ncurses path:lib/libxar.dylib:xar port:zlib
+    depends_run         bin:perl:perl5 port:llvm_select
+
+    # restrict targets for development at least
+    configure.args-append    -DLLVM_TARGETS_TO_BUILD="X86"
+    # these are Apple's default LLVM targets
+    # configure.args-append    -DLLVM_TARGETS_TO_BUILD=\"X86\;ARM\;AArch64\"
+
+    variant polly description {Provide the polly polyhedral optimizer} {
+        configure.args-append   -DLLVM_ENABLE_PROJECTS="polly"
+    }
+}
+
+if {${subport} eq "clang-${llvm_version}"} {
+
+    # Need to match llvm +/- assertions
+    if {[variant_isset assertions]} {
+        require_active_variants port:llvm-${llvm_version} assertions
+    } else {
+        require_active_variants port:llvm-${llvm_version} {} assertions
+    }
+
+    # clang project requires libcxx project
+    # flang project requires mlir project
+    configure.args-append   -DLLVM_ENABLE_PROJECTS="clang\;clang-tools-extra\;compiler-rt\;libcxx\;libcxxabi\;lld\;flang\;mlir"
+
+    #build.target            stage2-distribution
+    #destroot.target         stage2-install-distribution
+}
+
+if {${subport} eq "lldb-${llvm_version}"} {
+    configure.args-append   -DLLVM_ENABLE_PROJECTS="lldb"
+    build.target            lldb-distribution
+    destroot.target         lldb-install-distribution
+}
+
+variant tests description {Enable building of test code} {
+    test.run                yes
+    configure.args-append   -DLLVM_INCLUDE_TESTS=ON
+    test.target             check
+}
+
+post-destroot {
+    # do some fixups
+
+    if {${subport} eq "llvm-${llvm_version}"} {
+        # https://llvm.org/bugs/show_bug.cgi?id=19465
+#        if {[variant_isset polly]} {
+            ln -s LLVMPolly.so ${destroot}${sub_prefix}/lib/LLVMPolly.dylib
+#        }
+    }
+
+	if {${subport} eq "clang-${llvm_version}"} {
+
+		delete ${destroot}${sub_prefix}/bin/clang
+		file rename ${destroot}${sub_prefix}/bin/clang-${llvm_version} ${destroot}${sub_prefix}/bin/clang
+#		reinplace "s|/bin/clang-${llvm_version}|/bin/clang|g" \
+#			"${destroot}${sub_prefix}/lib/cmake/clang/ClangTargets-release.cmake"
+
+        # http://trac.macports.org/ticket/33207
+        ln -s ${prefix}/libexec/ld64/ld ${destroot}${sub_prefix}/bin/ld
+	}
+
+    foreach bin [glob ${destroot}${sub_prefix}/bin/*] {
+        set bin_filename [string map "${sub_prefix} ${prefix}" ${bin}]-${suffix}
+        set exec_path [string map "${destroot}${sub_prefix} ${sub_prefix}" ${bin}]
+
+        # see https://trac.macports.org/ticket/54985
+        if {${os.platform} eq "darwin" && [vercmp ${xcodeversion} 4.6] < 0} {
+             xinstall -m 755 "${filespath}/llvm-bin-compat" "${bin_filename}"
+        } else {
+             xinstall -m 755 "${filespath}/llvm-bin" "${bin_filename}"
+        }
+
+        reinplace "s:EXEC_PATH:${exec_path}:" "${bin_filename}"
+    }
+}
+
+livecheck.type          none
+
+
+
+
+
+########## Notes #######
+
+# (1)
+# clang shared libraries are not all installed in ${cmake.install_prefix}/lib
+# so we have to let the llvm/clang cmake scripts handle the @rpath setting
+# See:
+#     https://llvm.org/bugs/show_bug.cgi?id=31425
+#     https://trac.macports.org/ticket/53299
+
+
+
+# (2)
+# Creating a toolchain is not working. The cmake files seem out of date
+# and are referencing xcode 8. The build is failing with this turned on, and is showing
+# this error:
+# CMake Error at tools/xcode-toolchain/CMakeLists.txt:52 (string):
+#  string sub-command REGEX, mode MATCH needs at least 5 arguments total to
+#  command.
+# CMake Warning at tools/xcode-toolchain/CMakeLists.txt:60 (message):
+#  Failed to detect the version of an installed copy of Xcode, falling back to
+#  highest supported version.  Set XCODE_VERSION to override.
+# CMake Error at tools/xcode-toolchain/CMakeLists.txt:80 (message):
+#  Could not identify toolchain dir
+# -- Configuring incomplete, errors occurred!
+
+# (3)
+# target libc is not working on Darwin 18 at least
+#CMake Warning at /opt/local/var/macports/build/_opt_myports_lang_llvm-devel/clang-devel/work/llvm-project/libc/cmake/modules/LLVMLibCObjectRules.cmake:95 (message):
+#  Aliasee libc.src.signal.darwin.raise for entrypoint alias raise missing;
+#  Target raise will be ignored.
+#Call Stack (most recent call first):
+#  /opt/local/var/macports/build/_opt_myports_lang_llvm-devel/clang-devel/work/llvm-project/libc/src/signal/CMakeLists.txt:5 (add_entrypoint_object)
+
+
+
+# snippets for later use
+#if {[string match macports-clang-* ${configure.compiler}]} {
+
+#    depends_build-append port:cctools
+#    depends_skip_archcheck-append cctools
+#    configure.args-append   -DCMAKE_LIBTOOL=${prefix}/bin/libtool
+
+#    if {${os.platform} eq "darwin" && ${os.major} < 11} {
+        # the default ld64-127 linker cannot build this with LTO at present in this configuration
+        # if we could test the linker version, we might be able to enable it
+        # if a newer linker than 127 is installed -- not sure where the cutoff is
+#        configure.args-append -DLLVM_ENABLE_LTO=OFF
+#    } else {
+        # libtool will error on llvm bitcode generated by a clang version
+        # newer than the libLTO.dylib cctools is built against
+        # making sure cctools is built against the newest llvm in use prevents this, but we can't
+        # always guarantee that will be the case
+
+        # we can instead set DYLD_LIBRARY_PATH to the libLTO.dylib that matches the building clang
+        # then libtool will use that libLTO.dylib instead, which matches the clang objects
+
+#        set clangversion        [lindex [split ${configure.compiler} -] 2]
+#        build.env               DYLD_LIBRARY_PATH=${prefix}/libexec/llvm-$clangversion/lib/
+#    }
+#}
+
+#if {${os.platform} eq "darwin" && ${os.major} < 11} {
+    # Proxy for eliminating the dependency on native TLS
+    # http://trac.macports.org/ticket/46887
+#    configure.args-append -DLLVM_ENABLE_BACKTRACES=OFF
+
+    # https://llvm.org/bugs/show_bug.cgi?id=25680
+#    configure.cxxflags-append -U__STRICT_ANSI__
+
+    # remove need for port:libxml2 dependency
+#    depends_lib-delete port:libxml2
+#    configure.args-append -DLIBXML2_LIBRARIES=IGNORE
+
+    # os versions < 11 did not have python2.7
+#    depends_build-append    port:python27
+#    configure.args-append   -DPYTHON_EXECUTABLE=${prefix}/bin/python2.7
+#    depends_skip_archcheck-append python27
+#}
+
