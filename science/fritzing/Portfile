@@ -18,7 +18,8 @@ revision                0
 name                    fritzing
 
 qt5.min_version         5.9
-qt5.depends_component   qtserialport qtsvg sqlite-plugin qttools
+qt5.depends_component   qtvirtualkeyboard qtserialport qtsvg sqlite-plugin qttools
+# pulled in by virtualkeyboard: qtquickcontrols qtgraphicaleffects qtmultimedia
 
 checksums               rmd160  958ad2af33e8e1443f00f56b9c2eb08cd6a746f0 \
                         sha256  6d36c0e149f5eec82d3b7a4c051832e1f819cda32e54e5a435b332ba81dfacca \
