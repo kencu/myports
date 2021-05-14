@@ -1,0 +1,103 @@
+# -*- coding: utf-8; mode: tcl; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- vim:fenc=utf-8:ft=tcl:et:sw=4:ts=4:sts=4
+
+PortSystem              1.0
+PortGroup               github 1.0
+PortGroup               qmake5 1.0
+
+license                 GPL-3+
+categories              science cad
+platforms               darwin
+maintainers             nomaintainer
+description             Electronic Design Automation software with a low entry barrier.
+long_description        The Fritzing application is an Electronic Design Automation\
+                        software with a low entry barrier, suited for the needs\
+                        of makers and hobbyists..
+
+github.setup            fritzing fritzing-app 0.9.6
+revision                0
+name                    fritzing
+
+qt5.min_version         5.9
+qt5.depends_component   qtserialport qtsvg sqlite-plugin qttools
+
+# SOOOOOOOO -- this was cute, but in the end, doesn't work
+# the Fritzing application requires a git clone of the parts database to function
+
+# to add more files to a github portgroup download
+# we cache the preset distfiles from the github PG
+set main_distfile       ${distfiles}
+
+# then add a suitable parts distfile from this repo:
+# https://github.com/fritzing/fritzing-parts/
+# has to be short commit ID for extraction to work out properly
+set parts_commit         b82c8c3
+
+#  now add another distfile, with a direct URL as can't use the github PG again
+set parts_distname      fritzing-parts-${parts_commit}
+set parts_distfile      ${parts_distname}${extract.suffix}
+set parts_mastersite    https://github.com/fritzing/fritzing-parts/tarball/${parts_commit}/
+
+distfiles               ${main_distfile}:main \
+                        ${parts_distfile}:parts
+                        
+master_sites            ${github.master_sites}:main \
+                        ${parts_mastersite}:parts
+
+
+checksums               ${main_distfile} \
+                        rmd160  958ad2af33e8e1443f00f56b9c2eb08cd6a746f0 \
+                        sha256  6d36c0e149f5eec82d3b7a4c051832e1f819cda32e54e5a435b332ba81dfacca \
+                        size    11523499 \
+                        ${parts_distfile} \
+                        rmd160  268b25f0bce5be1f9f030803a9640cac6cc7ac25 \
+                        sha256  6595550eeb61de8f9cdc124a10ac09d0c5ce29d22efd3108ef27d5c3fd78acba \
+                        size    17949959
+
+post-extract {
+
+    # rename directory - from github portgroup
+    if {[file exists [glob -nocomplain ${workpath}/${github.author}-${github.project}-*]] && \
+        [file isdirectory [glob -nocomplain ${workpath}/${github.author}-${github.project}-*]]} {
+        move [glob ${workpath}/${github.author}-${github.project}-*] ${workpath}/${distname}
+    }
+
+    # move the parts directory into the main build directory
+    move ${workpath}/${name}-${parts_distname} ${workpath}/${distname}/fritzing-parts
+    
+    # link to the libgit2 includes
+    ln -s ${prefix}/include/git2 ${workpath}/libgit2
+}
+
+patchfiles              patch-fritzing-libgit2-not-static.diff
+
+compiler.cxx_standard   2014
+
+depends_lib-append      port:boost \
+                        port:libgit2
+
+configure.args-append   LIBS+=-lgit2
+
+destroot {
+
+    # duplicate functionality of tools/deploy_fritzing_mac.sh
+
+    copy ${workpath}/release64/Fritzing.app ${destroot}${applications_dir}
+
+    set support_dir ${destroot}${applications_dir}/Fritzing.app/Contents/MacOS/
+    foreach item {sketches help translations INSTALL.txt README.md LICENSE.CC-BY-SA LICENSE.GPL2 LICENSE.GPL3} {
+        copy ${worksrcpath}/$item ${support_dir}
+    }
+
+    # remove translation xml files, since we only need the binaries in the release
+    system -W ${support_dir} "rm -f ./translations/*.ts"
+
+    # delete empty translation binaries
+    system -W ${support_dir} "find ./translations -name \"*.qm\" -size -128c -delete"
+
+    # download the latest parts version available
+    system -W ${support_dir} "git clone --branch master --single-branch https://github.com/fritzing/fritzing-parts.git"
+
+    # generate the parts database
+    system -W ${support_dir} "./Fritzing -db \"fritzing-parts/parts.db\""
+
+}
