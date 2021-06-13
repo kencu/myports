@@ -72,6 +72,15 @@ subport mpich-default {
         configure.args-append --enable-opencl=no
     }
 
+    # add missing __POWERPC defs
+    patchfiles-append patch-mpich-darwin-powerpc.diff
+
+    platform darwin powerpc {
+        # libfabric calls for atomicops, on PPC at least
+        compiler.blacklist-append *gcc-4.* *gcc-3.*
+        configure.ldflags-append -latomic
+    }
+
     post-destroot {
         delete ${destroot}${prefix}/share/man
         delete ${destroot}${prefix}/share/doc
