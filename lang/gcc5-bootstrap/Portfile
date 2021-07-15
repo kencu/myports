@@ -1,0 +1,172 @@
+# -*- coding: utf-8; mode: tcl; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- vim:fenc=utf-8:filetype=tcl:et:sw=4:ts=4:sts=4
+
+PortSystem          1.0
+PortGroup           xcodeversion 1.0
+
+name                gcc5-bootstrap
+version             5.5.0
+revision            0
+platforms           darwin
+categories          lang
+maintainers         nomaintainer
+
+# an exception in the license allows dependents to not be GPL
+license             {GPL-3+ Permissive}
+description         self-contained gcc version for bootstrapping only
+long_description    {*}$description
+
+homepage            https://gcc.gnu.org/
+master_sites        http://gcc.gnu.org/pub/gcc/releases/gcc-${version}/:gcc \
+                    gnu:gcc/gcc-${version}:gcc \
+                    http://gcc.gnu.org/pub/gcc/infrastructure/:gccinfrastructure \
+                    gnu:gcc/infrastructure:gccinfrastructure
+
+# Necessary to build GCC. These are the versions specified in the gcc5 build
+#set MPFR mpfr-2.4.2
+#set GMP  gmp-4.3.2
+#set MPC  mpc-0.8.1
+#set ISL  isl-0.14
+
+# Necessary to build GCC. These are the versions specified by Iains here
+# https://github.com/iains/darwin-gcc-5 although MPFR is one newer here as 3.1.3 is
+# not available on the upstream server
+set MPFR mpfr-3.1.4
+set GMP  gmp-6.1.0
+set MPC  mpc-1.0.3
+set ISL  isl-0.14
+
+dist_subdir         gcc
+distname            gcc-${version}
+
+distfiles           ${distname}${extract.suffix}:gcc \
+                    ${MPFR}.tar.bz2:gccinfrastructure \
+                    ${GMP}.tar.bz2:gccinfrastructure \
+                    ${MPC}.tar.gz:gccinfrastructure \
+                    ${ISL}.tar.bz2:gccinfrastructure
+
+checksums           gcc-5.5.0.tar.gz \
+                    rmd160  370df3858c623fd18d92ea7b92cb6fa9759b4979 \
+                    sha256  3aabce75d6dd206876eced17504b28d47a724c2e430dbd2de176beb948708983 \
+                    size    123816630 \
+                    mpfr-3.1.4.tar.bz2 \
+                    rmd160  917939100e262f9d620bf08b1b6a5d0ee9be5c4d \
+                    sha256  d3103a80cdad2407ed581f3618c4bed04e0c92d1cf771a65ead662cc397f7775 \
+                    size    1279284 \
+                    gmp-6.1.0.tar.bz2 \
+                    rmd160  3bf2ad8471944f899bffcb86aed0e2072416a464 \
+                    sha256  498449a994efeba527885c10405993427995d3f86b8768d8cdf8d9dd7c6b73e8 \
+                    size    2383840 \
+                    mpc-1.0.3.tar.gz \
+                    rmd160  22f4c3bed0c4298bcafbd4cbfa9d74cb5bdda186 \
+                    sha256  617decc6ea09889fb08ede330917a00b16809b8db88c29c31bfbb49cbf88ecc3 \
+                    size    669925 \
+                    isl-0.14.tar.bz2 \
+                    rmd160  4c69d026b51561bc1948cb7db79331b78a9d2c39 \
+                    sha256  7e3c02ff52f8540f6a85534f54158968417fd676001651c8289c705bd0228f36 \
+                    size    1399896
+
+# checksums           gcc-5.5.0.tar.gz \
+#                     rmd160  370df3858c623fd18d92ea7b92cb6fa9759b4979 \
+#                     sha256  3aabce75d6dd206876eced17504b28d47a724c2e430dbd2de176beb948708983 \
+#                     size    123816630 \
+#                     mpfr-2.4.2.tar.bz2 \
+#                     rmd160  a3563baef20dab98825d90971e6a69a649f53fdf \
+#                     sha256  c7e75a08a8d49d2082e4caee1591a05d11b9d5627514e678f02d66a124bcf2ba \
+#                     size    1077886 \
+#                     gmp-4.3.2.tar.bz2 \
+#                     rmd160  a8f3f41501ece290c348aeb4444bbea40bc53e71 \
+#                     sha256  936162c0312886c21581002b79932829aa048cfaf9937c6265aeaa14f1cd1775 \
+#                     size    1897483 \
+#                     mpc-0.8.1.tar.gz \
+#                     rmd160  d3297994a37980dd537e46d94ebbcbeda36a775d \
+#                     sha256  e664603757251fd8a352848276497a4c79b7f8b21fd8aedd5cc0598a38fee3e4 \
+#                     size    544950 \
+#                     isl-0.14.tar.bz2 \
+#                     rmd160  4c69d026b51561bc1948cb7db79331b78a9d2c39 \
+#                     sha256  7e3c02ff52f8540f6a85534f54158968417fd676001651c8289c705bd0228f36 \
+#                     size    1399896
+
+
+# Work around parallel building issue on APFS
+# https://gcc.gnu.org/bugzilla/show_bug.cgi?id=81797
+patchfiles-append   notparallel-install-headers.patch
+
+# work around bug in 10.13 headers
+patchfiles-append   headers-10.13-fix.patch
+
+if {[vercmp ${xcodeversion} 10.2] >= 0} {
+    # https://trac.macports.org/ticket/58260
+    # Patch for Xcode bug, taken from
+    # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=89864#c43
+    # https://github.com/Homebrew/homebrew-core/pull/39134/files
+    patchfiles-append   xcode-bug-_Atomic-fix.patch
+}
+
+pre-configure {
+
+    file mkdir ${workpath}/bins
+    ln /usr/bin/ld ${workpath}/bins/ld
+    ln /usr/bin/as ${workpath}/bins/as
+
+    system -W ${worksrcpath} "ln -s ../${MPFR} mpfr"
+    system -W ${worksrcpath} "ln -s ../${GMP}  gmp"
+    system -W ${worksrcpath} "ln -s ../${MPC}  mpc"
+    system -W ${worksrcpath} "ln -s ../${ISL}  isl"
+}
+
+# add our bins directory to the front of the PATH
+configure.env "PATH=${workpath}/bins:/usr/bin:/bin:/usr/sbin:/sbin"
+build.env     "PATH=${workpath}/bins:/usr/bin:/bin:/usr/sbin:/sbin"
+
+# sterilize MacPorts build environment; we want nothing picked up from MP prefix
+configure.cxx_stdlib
+compiler.cpath
+compiler.library_path
+configure.cc_archflags
+configure.cxx_archflags
+configure.objc_archflags
+configure.ld_archflags
+configure.optflags
+
+set major           [lindex [split ${version} .-] 0]
+set prefix          ${prefix}/libexec/gcc${major}-bootstrap
+
+configure.cmd       ${worksrcpath}/configure
+configure.dir       ${workpath}/build
+configure.args      --enable-languages=c,c++,objc,obj-c++,lto \
+                    --with-system-zlib \
+                    --disable-nls \
+                    --program-suffix=-bootstrap-${major} \
+                    --with-bugurl=https://trac.macports.org/newticket
+
+if {${os.major} >= 18} {
+    configure.args-append --disable-multilib
+}
+
+if {${os.major} >= 18 && ${configure.sdkroot} ne ""} {
+    configure.args-append --with-sysroot="[regsub {MacOSX1[1-9]\.[0-9]+\.sdk} ${configure.sdkroot} {MacOSX.sdk}]"
+}
+
+platform darwin 8 {
+    configure.args-append --with-dwarf2
+}
+
+build.dir           ${configure.dir}
+build.target        bootstrap-lean
+
+#if { ${os.major} >= 19 } {
+#    known_fail  yes
+#    pre-fetch {
+#        ui_error "${name} ${version} is not supported on Darwin ${os.major}"
+#        ui_error "See https://gcc.gnu.org/bugzilla/show_bug.cgi?id=90835 and"
+#        ui_error "    https://trac.macports.org/ticket/59351 for more details"
+#        ui_error "To install this port upgrade Xcode to 11.3 or newer"
+#        return -code error "incompatible Xcode version"
+#    }
+#}
+
+#post-destroot {
+#    file delete ${destroot}${prefix}/share/info/dir
+#}
+
+livecheck.type      none
