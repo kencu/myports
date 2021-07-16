@@ -2,6 +2,9 @@
 
 PortSystem          1.0
 
+# ideally for this bootstrap port we want no deps on any MacPorts port. This port
+# should build cleanly from system roots and use and/or link to nothing in MacPorts.
+
 name                gcc7-bootstrap
 version             7.5.0
 revision            0
@@ -55,6 +58,12 @@ checksums           gcc-7.5.0.tar.gz \
                     sha256  6b8b0fd7f81d0a957beb3679c81bbb34ccc7568d5682844d8924424a0dadcb1b \
                     size    1658291
 
+# post-branch-closure fixes from darwin maintainer https://github.com/iains/gcc-7-branch
+patchfiles-append   patch-gcc7-iains-20201129-rollup.diff \
+
+# fix for Tiger
+patchfiles-append   patch-gcc7-tiger-intel.diff
+
 pre-configure {
 
     file mkdir ${workpath}/bins
@@ -71,8 +80,31 @@ pre-configure {
 configure.env "PATH=${workpath}/bins:/usr/bin:/bin:/usr/sbin:/sbin"
 build.env     "PATH=${workpath}/bins:/usr/bin:/bin:/usr/sbin:/sbin"
 
+#FIXME BEFORE COMMITTING -- TIGER ONLY
+platform darwin {
+    # Tiger comes with make 3.80 and we need 3.81
+    set    MAKE_V       make-3.81
+
+    master_sites-append gnu:make:gccmake
+    distfiles-append    ${MAKE_V}.tar.gz:gccmake
+    checksums-append    make-3.81.tar.gz \
+                        rmd160  a713a72875cb9a29568677c98022465c6f55cbbf \
+                        sha256  16b77de9f013bcd536b7bc1efbe314223aedfe250f9063e33cbb4dfd347215a2 \
+                        size    1564560
+
+    pre-configure {
+        system -W ${workpath}/${MAKE_V} "./configure && make"
+        ln ${workpath}/${MAKE_V}/make   ${workpath}/bins/make
+    }
+
+    configure.env-append "MAKE=${workpath}/bins/make"
+    build.env-append     "MAKE=${workpath}/bins/make"
+}
+
 # sterilize MacPorts build environment; we want nothing picked up from MP prefix
 configure.cxx_stdlib
+configure.cxxflags
+configure.cflags
 compiler.cpath
 compiler.library_path
 configure.cc_archflags
@@ -86,7 +118,7 @@ set prefix          ${prefix}/libexec/gcc${major}-bootstrap
 
 configure.cmd       ${worksrcpath}/configure
 configure.dir       ${workpath}/build
-configure.args      --enable-languages=c,c++,objc,obj-c++,lto \
+configure.args      --enable-languages=c,c++,objc,obj-c++ \
                     --with-system-zlib \
                     --disable-nls \
                     --program-suffix=-bootstrap-${major} \
@@ -97,7 +129,7 @@ if {${os.major} >= 18} {
 }
 
 if {${os.major} >= 18 && ${configure.sdkroot} ne ""} {
-    configure.args-append --with-sysroot="[regsub {MacOSX1[1-9]\.[0-9]+\.sdk} ${configure.sdkroot} {MacOSX.sdk}]"
+    configure.args-append --with-sysroot="[regsub {MacOSX1[0-9]\.[0-9]+\.sdk} ${configure.sdkroot} {MacOSX.sdk}]"
 }
 
 platform darwin 8 {
