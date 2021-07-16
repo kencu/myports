@@ -58,6 +58,21 @@ checksums           gcc-7.5.0.tar.gz \
                     sha256  6b8b0fd7f81d0a957beb3679c81bbb34ccc7568d5682844d8924424a0dadcb1b \
                     size    1658291
 
+extract {
+    foreach f ${distfiles} {
+        set f [lrange [split ${f} :] 0 0]
+        ui_msg "Extracting: ${f}"
+        if {[string match "*bz2*" ${f}]} {
+            ui_msg "${workpath} \"/usr/bin/tar xjf ${distpath}/${f}\""
+            system -W ${workpath} "/usr/bin/tar xjf ${distpath}/${f}" 
+            }
+        if {[string match "*gz*" ${f}]}  {
+            ui_msg "${workpath} \"/usr/bin/tar xzf ${distpath}/${f}\""
+            system -W ${workpath} "/usr/bin/tar xzf ${distpath}/${f}"
+            }
+    }
+}
+
 # post-branch-closure fixes from darwin maintainer https://github.com/iains/gcc-7-branch
 patchfiles-append   patch-gcc7-iains-20201129-rollup.diff \
 
