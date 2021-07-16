@@ -80,8 +80,7 @@ pre-configure {
 configure.env "PATH=${workpath}/bins:/usr/bin:/bin:/usr/sbin:/sbin"
 build.env     "PATH=${workpath}/bins:/usr/bin:/bin:/usr/sbin:/sbin"
 
-#FIXME BEFORE COMMITTING -- TIGER ONLY
-platform darwin {
+platform darwin 8 {
     # Tiger comes with make 3.80 and we need 3.81
     set    MAKE_V       make-3.81
 
@@ -93,7 +92,7 @@ platform darwin {
                         size    1564560
 
     pre-configure {
-        system -W ${workpath}/${MAKE_V} "./configure && make"
+        system -W ${workpath}/${MAKE_V} "CC=/usr/bin/cc ./configure && make"
         ln ${workpath}/${MAKE_V}/make   ${workpath}/bins/make
     }
 
