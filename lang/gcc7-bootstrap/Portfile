@@ -82,8 +82,8 @@ patchfiles-append   patch-gcc7-tiger-intel.diff
 pre-configure {
 
     file mkdir ${workpath}/bins
-    ln /usr/bin/ld ${workpath}/bins/ld
-    ln /usr/bin/as ${workpath}/bins/as
+    ln -s /usr/bin/ld ${workpath}/bins/ld
+    ln -s /usr/bin/as ${workpath}/bins/as
 
     system -W ${worksrcpath} "ln -s ../${MPFR} mpfr"
     system -W ${worksrcpath} "ln -s ../${GMP}  gmp"
@@ -108,7 +108,7 @@ platform darwin 8 {
 
     pre-configure {
         system -W ${workpath}/${MAKE_V} "CC=/usr/bin/cc ./configure && make"
-        ln ${workpath}/${MAKE_V}/make   ${workpath}/bins/make
+        ln -s ${workpath}/${MAKE_V}/make   ${workpath}/bins/make
     }
 
     configure.env-append "MAKE=${workpath}/bins/make"
